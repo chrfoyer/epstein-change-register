@@ -23,13 +23,13 @@ week of delay is a week of history that cannot be recovered later. Ship this
 before anything is pretty.
 
 - [x] Scaffolding: `pyproject.toml`, `uv` setup, `.gitignore`, CI skeleton (pytest on push)
-- [~] Source A: poll analytics.usa.gov top-downloads CSV daily (D-011) — code + tests done; needs `REGISTER_CONTACT` repo variable and a first Actions run
+- [x] Source A: poll analytics.usa.gov top-downloads CSV daily (D-011) — first live run 2026-10-04: 93 PDFs kept, 7 excluded; state on `data` branch
 - [ ] Source B: Wayback listing captures + CDX digest (blocked: archive.org offline on 2026-10-04)
 - [ ] Source C: community hash lists as claimed hashes (yung-megafone/Epstein-Files)
 - [-] ~~Download changed files; compute `sha256`~~ — dropped, PDFs are behind DOJ's age gate (D-011)
 - [x] Conditional requests + polite delay; identifiable User-Agent with contact (Source A: serial, If-None-Match, UA from `REGISTER_CONTACT`)
-- [ ] Persist to DuckDB; commit or sync after every run
-- [ ] Runs unattended on a schedule without me touching it
+- [x] Persist to DuckDB; commit or sync after every run (Parquet on `data` branch)
+- [~] Runs unattended on a schedule without me touching it (daily cron from 2026-10-05; 0 of 3 unattended runs so far)
 
 **Done when:** the job has completed three consecutive unattended runs.
 
