@@ -63,3 +63,8 @@ Non-ok captures must carry zero file rows (enforced by append_listing_capture).
 - fixture-builder agent (background task) completed successfully and generated all 8 scenarios + expected outputs
 - store.py already has contract imports and append_listing_capture helper (from session B's PR)
 - All tests pass post-rebase; no conflicts with contract DDL
+- Incorporated design facts from B's spike (PR #6 spike findings):
+  - archive_digest will be NULL for most rows initially (per-file CDX lookups deferred)
+  - reuploaded_identical/reuploaded_changed now gracefully degrade when digest is NULL
+  - Added complete_by_source parameter to classify_listings for future completeness input (not yet used in rules)
+  - Commit 9f7e834: explicit NULL checks; all 10 tests still pass
