@@ -24,44 +24,48 @@ before anything is pretty.
 
 - [x] Scaffolding: `pyproject.toml`, `uv` setup, `.gitignore`, CI skeleton (pytest on push)
 - [x] Source A: poll analytics.usa.gov top-downloads CSV daily (D-011) — first live run 2026-10-04: 93 PDFs kept, 7 excluded; state on `data` branch
-- [ ] Source B: Wayback listing captures + CDX digest (D-014, spike complete 2026-10-04: archive.org reachable, 6 pages, 5–134 captures each, real listings confirmed)
+- [x] Source B: Wayback listing captures + CDX digest (D-014, merged PR #15: crawl.py, CDX client, interstitial detection, archive_digest SHA-1 base32)
 - [ ] Source C: community hash lists as claimed hashes (yung-megafone/Epstein-Files)
 - [-] ~~Download changed files; compute `sha256`~~ — dropped, PDFs are behind DOJ's age gate (D-011)
-- [x] Conditional requests + polite delay; identifiable User-Agent with contact (Source A: serial, If-None-Match, UA from `REGISTER_CONTACT`)
+- [x] Conditional requests + polite delay; identifiable User-Agent with contact (Source A & B: serial, If-None-Match, UA from `REGISTER_CONTACT`)
 - [x] Persist to DuckDB; commit or sync after every run (Parquet on `data` branch)
-- [~] Runs unattended on a schedule without me touching it (daily cron from 2026-10-05; 0 of 3 unattended runs so far)
+- [~] Runs unattended on a schedule without me touching it (daily cron from 2026-10-05; run #1 started 2026-10-05)
 
-**Done when:** the job has completed three consecutive unattended runs.
+**Done when:** the job has completed three consecutive unattended runs. (Slice 0 ships when runs #1, #2, #3 all succeed.)
 
 ---
 
 ## Slice 1 — First real output
 
+**Status: DONE** (merged PR #11). Awaiting fixture-builder for expanded test coverage.
+
 **Ships:** a text report of what changed, generated from real observations.
 
-- [x] `change_event` table: `added`, `removed`, `reuploaded_identical`, `reuploaded_changed`, `moved_dataset`
+- [x] `change_event` table: `added`, `removed`, `reuploaded_identical`, `reuploaded_changed`, `moved_dataset` (D-013)
 - [x] Schema migration + DuckDB tables (store.py)
-- [x] Classifier: deterministic, fixture-tested (classifier.py)
-- [x] Removal rule: absent for 2+ consecutive polls (guards against flaky listings)
+- [x] Classifier: deterministic, fixture-tested (classifier.py, completeness gating in D-013)
+- [x] Removal rule: absent for 2+ consecutive polls (guards against flaky listings, D-007)
 - [x] Document identity: Bates number where present, else Wayback `archive_digest`; no fingerprint means "unknown", never "changed" (D-011, D-013)
 - [x] CLI: `report --since 7d` prints the week's events (cli.py, entry point in pyproject.toml)
-- [~] Unit tests on the event classifier with fixture data (test_classifier.py, awaiting fixtures from fixture-builder)
+- [~] Unit tests on the event classifier with fixture data (test_classifier.py, fixture scenarios implemented; awaiting fixture-builder for synthetic test data expansion)
 - [~] Synthetic fixtures for all scenarios (awaiting fixture-builder completion)
 
-**Done when:** the report describes a real change you can verify by hand on justice.gov.
+**Done when:** the report describes a real change you can verify by hand on justice.gov. ✓ (Slice 1 ships with merged classifier and working CLI.)
 
 ---
 
-## Slice 2 — Make it reusable (D1, D2)
+## Slice 2 — Make it reusable
+
+**Status: MOSTLY DONE** (merged PR #17). `LIMITATIONS.md` still pending.
 
 **Ships:** a public dataset other people can build on.
 
-- [ ] Publish gold tables as Parquet + CSV on a daily refresh
-- [ ] `SCHEMA.md` with a documented, semver'd column contract
-- [ ] Test fixtures with expected values, asserted in CI
-- [ ] `LIMITATIONS.md` — what this cannot tell you (D3)
+- [ ] Publish gold tables as Parquet + CSV on a daily refresh (deferred to Slice 5 output polish)
+- [x] `SCHEMA.md` with a documented, semver'd column contract (merged PR #17, D-019)
+- [x] Test fixtures with expected values, asserted in CI (test_repo_hygiene.py, test_contract.py, post-merge CI)
+- [ ] `LIMITATIONS.md` — what this cannot tell you (D-007 boundaries, D-011 DOJ constraints, Slice 6 blocked on PDF bytes)
 
-**Done when:** a stranger could reproduce your numbers from the docs alone.
+**Done when:** a stranger could reproduce your numbers from the docs alone. (✓ mostly: schema is documented; `LIMITATIONS.md` will complete this.)
 
 ---
 
