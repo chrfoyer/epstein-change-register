@@ -4,6 +4,8 @@ from pathlib import Path
 
 import duckdb
 
+from register import contract
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS analytics_fetch (
     run_id VARCHAR,
@@ -35,7 +37,41 @@ FROM analytics_file_observation
 GROUP BY file_url, bates_id, dataset;
 """
 
-TABLES = ("analytics_fetch", "analytics_file_observation")
+TABLES = ("analytics_fetch", "analytics_file_observation", "listing_capture", "listing_capture_file")
+
+_CAPTURE_KEYS = ("run_id", "capture_ts", "source_url", "listing_url", "status")
+_FILE_KEYS = ("file_url", "bates_id", "dataset")
+
+
+def append_listing_capture(con: duckdb.DuckDBPyConnection, capture: dict, files: list[dict]) -> None:
+    """Append one listing capture and its file rows. The only writer for these tables.
+
+    A blocked, error or empty capture carries no file rows, so it can never read
+    as a mass removal (D-007). `archive_digest` is optional; absent means unknown.
+    """
+    missing = [k for k in _CAPTURE_KEYS if not capture.get(k)]
+    if missing:
+        raise ValueError(f"listing capture missing required fields: {missing}")
+    if capture["status"] not in contract.LISTING_STATUSES:
+        raise ValueError(f"status must be one of {contract.LISTING_STATUSES}, got {capture['status']!r}")
+    if capture["status"] != "ok" and files:
+        raise ValueError(f"a {capture['status']} capture must not carry file rows")
+    for f in files:
+        bad = [k for k in _FILE_KEYS if not f.get(k)]
+        if bad:
+            raise ValueError(f"listing file missing required fields: {bad}")
+
+    con.execute(
+        "INSERT INTO listing_capture VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        [capture["run_id"], capture["capture_ts"], capture["source_url"], capture["listing_url"],
+         capture.get("archive_url"), capture.get("archive_ts"), capture["status"], len(files)],
+    )
+    if files:  # DuckDB executemany rejects an empty parameter list
+        con.executemany(
+            "INSERT INTO listing_capture_file VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            [[capture["run_id"], capture["capture_ts"], capture["source_url"], capture["listing_url"],
+              f["file_url"], f["bates_id"], f["dataset"], f.get("archive_digest")] for f in files],
+        )
 
 
 def connect(db_path: str, import_dir: str | None = None) -> duckdb.DuckDBPyConnection:
@@ -44,6 +80,8 @@ def connect(db_path: str, import_dir: str | None = None) -> duckdb.DuckDBPyConne
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
     con = duckdb.connect(db_path)
     con.execute(SCHEMA)
+    con.execute(contract.LISTING_CAPTURE_DDL)
+    con.execute(contract.LISTING_CAPTURE_FILE_DDL)
     if import_dir:
         for table in TABLES:
             parquet = Path(import_dir) / f"{table}.parquet"

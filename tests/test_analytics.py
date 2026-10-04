@@ -65,6 +65,16 @@ def test_sends_stored_etag_and_handles_304():
     assert seen == [None, 'W/"abc"']
 
 
+def test_header_only_csv_is_ok_with_zero_rows_and_does_not_crash():
+    con = store.connect(":memory:")
+    handler = lambda request: httpx.Response(
+        200, text="linkUrl,page_title,page,total_events\n", headers={"content-type": "text/csv"})
+    with client_for(handler) as c:
+        assert analytics.run(con, c) == "ok"
+    assert con.execute("SELECT count(*) FROM analytics_file_observation").fetchone()[0] == 0
+    assert con.execute("SELECT row_count FROM analytics_fetch").fetchone()[0] == 0
+
+
 def test_bot_wall_is_unexpected_and_writes_no_file_rows():
     con = store.connect(":memory:")
     handler = lambda request: httpx.Response(200, text=BLOCKED, headers={"content-type": "text/html"})
