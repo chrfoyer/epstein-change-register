@@ -140,6 +140,8 @@ as a blog post. The product does not need it.
 
 ## Icebox
 
+- Jev integration (D-012, proposed): scope gate, anomaly triage, card text —
+  advisory and metadata-only; blocked on TypeSafe's data terms and access
 - Entity extraction and co-occurrence graph
 - Full-text search over extracted text
 - Coverage of House Oversight releases

@@ -26,7 +26,11 @@ These are not preferences. Do not propose work that crosses them.
 4. **Never emit a "removed" claim on a single absence.** Two consecutive polls
    plus third-party evidence. See D-007.
 5. **Be polite to justice.gov.** Conditional requests, rate limiting, honest
-   User-Agent with contact details. No parallel bulk fetching.
+   User-Agent with contact details. No parallel bulk fetching. Never pass the
+   age gate or bot check. See D-011.
+6. **Nothing derived from document content goes to an external API.** Metadata
+   fields on an explicit allowlist only. Sending data to a service publishes it.
+   See D-012.
 
 ## Working agreement
 
@@ -93,8 +97,10 @@ See D-010. `main` is always green and never committed to directly.
 - **Commits** follow Conventional Commits with the slice as scope:
   `feat(s0): record etag and last_modified per listing row`. Add a
   `Refs: D-00N` trailer when the commit implements or touches a decision.
-- **Merge** to `main` with `git merge --no-ff`, so each backlog item is one
-  visible unit. Delete the branch afterwards.
+- **Merge** via pull request using "Create a merge commit" (the `--no-ff`
+  equivalent), so each backlog item is one visible unit. `main` is protected:
+  the `test` CI check must pass and direct pushes are rejected. Squash and
+  rebase merges are disabled; the branch is deleted on merge.
 - **Before each merge:** `pytest` passes and `boundary-auditor` has run.
 - **Tag** `slice-N-done` on `main` when a slice's "Done when" is met.
 - Branch lifetime is at most one working block; never leave one open across a gap.
