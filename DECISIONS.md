@@ -339,6 +339,63 @@ typesafe.ai/blog/introducing-system-one-models-and-jev, openrouter.ai/docs
 
 ---
 
+## D-014 — Source B: Observe DOJ listings via Wayback CDX (Decided)
+
+**Decided:** Slice 0 Source B polls archive.org CDX API for Wayback captures of DOJ listing pages,
+extracts file metadata (URLs, Bates IDs), and records observations in `listing_capture` and
+`listing_capture_file` tables with archive_url, archive_ts, and archive_digest fingerprints.
+
+**Rejected:** (a) waiting for archive.org to restore (recovered before spike); (b) pre-downloading
+all listing snapshots via Save-Page-Now (per D-011, we do not cause archive.org to fetch DOJ on
+our behalf); (c) parsing live justice.gov directly (behind Akamai bot check per D-011).
+
+**Why:** Wayback captures are a lawful, third-party observation source (D-011). Spike confirmed:
+- archive.org CDX is reachable and operational
+- Rich capture history exists (5–134 snapshots per listing page, Dec 2025 – Oct 2026)
+- Snapshots contain real DOJ listing HTML, not Akamai interstitials
+- Markup is Drupal 10-rendered `<ul><li>` with stable Bates IDs (EFTA########) in filenames
+- Pagination is query-parameter based (`?page=0`..`?page=62`) with clear completion marker
+- Archive_digest (base32 SHA-1 from CDX) is available for each capture
+
+**Limitations:** (a) No file metadata (size, mtime) in listing markup—use archive_digest for
+fingerprinting, never rely on mtime; (b) listing snapshots reflect state at capture time, not
+publication time; (c) Wayback coverage may lag behind live DOJ; (d) PDF capture completeness
+is unknown (listings reference justice.gov PDFs which Wayback may not have captured); (e) 
+per-file archive_digest requires separate CDX lookup per PDF URL (thousands of requests at 1 per 
+2s delay), so will be NULL for most listing_capture_file rows initially.
+
+**Implementation scope:**
+- CDX client: query each listing page URL, extract capture timestamps and base32 SHA-1 digests
+- Interstitial detector: detect Akamai challenge markers (bm-verify, /_sec/verify) and 
+  characteristic body size/shape (~2 KB); record status="blocked" if found
+- Listing parser: extract file rows from Drupal `<ul><li>` markup,
+  collect URLs and Bates IDs per file
+- Pagination: iterate `?page=0` to last page (detect via aria-label="Last page")
+- Completeness: a "complete listing" capture set must have all pages (?page=0..62) from roughly 
+  the same window; partial captures do not count as status="ok". Define status for partial sets 
+  (options: new enum value, or "error"). Do not infer completeness from capture count; require 
+  explicit marker.
+- Persist to `listing_capture` (run metadata) and `listing_capture_file` (per-file) tables
+- Store archive_url (Wayback snapshot URL), archive_ts (capture timestamp),
+  archive_digest (base32 SHA-1 from CDX)
+- listing_capture_file.archive_digest will be NULL for PDFs initially; per-file digests require
+  future CDX lookups on PDF URLs (large-scale change, separate decision)
+- Only court-record PDFs under `DataSet N/` paths; exclude media and prior-disclosure
+  folders (mirror FILE_URL_RE from analytics.py per D-002)
+
+**Spike findings:** Detailed findings in `SPIKE_FINDINGS.md` (includes doj-recon markup analysis).
+
+**Would change if:** (a) Wayback stops serving DOJ listings (unexpected); (b) DOJ changes markup
+structure to the point where parsing fails (would trigger version-aware parser, not abandonment);
+(c) archive_digest proves insufficient for file identity (would require SHA256 on PDF bytes if 
+lawful byte source becomes available, but not before).
+
+**Refs:** D-011 (third-party sources, never download from DOJ), D-002 (scope to court-record PDFs),
+CLAUDE.md (polite requests, no Save-Page-Now). D-013 (change event classification rules) will 
+define how NULL archive_digest degrades event types from reuploaded_* to "unknown".
+
+---
+
 ## D-016 — Parallel sessions: contracts in code, one worktree each, handover files
 
 **Decided:** when running several Claude Code sessions in parallel, each works in

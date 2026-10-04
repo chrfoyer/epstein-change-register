@@ -24,7 +24,7 @@ before anything is pretty.
 
 - [x] Scaffolding: `pyproject.toml`, `uv` setup, `.gitignore`, CI skeleton (pytest on push)
 - [x] Source A: poll analytics.usa.gov top-downloads CSV daily (D-011) — first live run 2026-10-04: 93 PDFs kept, 7 excluded; state on `data` branch
-- [ ] Source B: Wayback listing captures + CDX digest (blocked: archive.org offline on 2026-10-04)
+- [ ] Source B: Wayback listing captures + CDX digest (D-014, spike complete 2026-10-04: archive.org reachable, 6 pages, 5–134 captures each, real listings confirmed)
 - [ ] Source C: community hash lists as claimed hashes (yung-megafone/Epstein-Files)
 - [-] ~~Download changed files; compute `sha256`~~ — dropped, PDFs are behind DOJ's age gate (D-011)
 - [x] Conditional requests + polite delay; identifiable User-Agent with contact (Source A: serial, If-None-Match, UA from `REGISTER_CONTACT`)
