@@ -327,6 +327,33 @@ typesafe.ai/blog/introducing-system-one-models-and-jev, openrouter.ai/docs
 
 ---
 
+## D-016 — Parallel sessions: contracts in code, one worktree each, handover files
+
+**Decided:** when running several Claude Code sessions in parallel, each works in
+its own git worktree created by `scripts/new_session.py`. Cross-session table
+contracts live in code (`src/register/contract.py`, written through
+`store.append_listing_capture`) and are checked by `tests/test_contract.py`.
+Session prompts live in `docs/handover/` and start with `/session-start <name>`.
+Sessions record status in `docs/handover/<name>-status.md` and do not edit
+`BACKLOG.md`; the coordinator folds it in after merge.
+
+**Rejected:** (a) pasting the table contract into each prompt, which let two
+sessions define the same tables differently and relied on review to notice;
+(b) every session editing `BACKLOG.md` and `DECISIONS.md`, the two files most
+likely to conflict; (c) one shared checkout.
+
+**Why:** the bottleneck is the maintainer's review time (D-008), so a mismatch
+must fail in CI rather than at review. A shared checkout happened within minutes
+of the first parallel start: one session wrote its uncommitted work into the
+coordinator's tree. The contract test also caught a real bug immediately, since
+DuckDB `executemany` rejects an empty list, which crashed any capture with no file
+rows. `analytics.py` had the same latent crash and is fixed here.
+
+**Would change if:** the project returns to a single session at a time, or a
+contract needs to cross repositories, in which case version it (SCHEMA.md semver).
+
+---
+
 ## D-014 — Source B: Observe DOJ listings via Wayback CDX (Decided)
 
 **Decided:** Slice 0 Source B polls archive.org CDX API for Wayback captures of DOJ listing pages,
@@ -343,36 +370,44 @@ our behalf); (c) parsing live justice.gov directly (behind Akamai bot check per 
 - Snapshots contain real DOJ listing HTML, not Akamai interstitials
 - Markup is Drupal 10-rendered `<ul><li>` with stable Bates IDs (EFTA########) in filenames
 - Pagination is query-parameter based (`?page=0`..`?page=62`) with clear completion marker
-- Archive_digest (CDX SHA256 hash) is available for each capture
+- Archive_digest (base32 SHA-1 from CDX) is available for each capture
 
 **Limitations:** (a) No file metadata (size, mtime) in listing markup—use archive_digest for
 fingerprinting, never rely on mtime; (b) listing snapshots reflect state at capture time, not
 publication time; (c) Wayback coverage may lag behind live DOJ; (d) PDF capture completeness
-is unknown (listings reference justice.gov PDFs which Wayback may not have captured).
+is unknown (listings reference justice.gov PDFs which Wayback may not have captured); (e) 
+per-file archive_digest requires separate CDX lookup per PDF URL (thousands of requests at 1 per 
+2s delay), so will be NULL for most listing_capture_file rows initially.
 
 **Implementation scope:**
-- CDX client: query each listing page URL, extract capture timestamps and digests
-- Interstitial detector: 403 status or absent valid markup → record status="blocked"
+- CDX client: query each listing page URL, extract capture timestamps and base32 SHA-1 digests
+- Interstitial detector: detect Akamai challenge markers (bm-verify, /_sec/verify) and 
+  characteristic body size/shape (~2 KB); record status="blocked" if found
 - Listing parser: extract file rows from Drupal `<ul><li>` markup,
   collect URLs and Bates IDs per file
 - Pagination: iterate `?page=0` to last page (detect via aria-label="Last page")
+- Completeness: a "complete listing" capture set must have all pages (?page=0..62) from roughly 
+  the same window; partial captures do not count as status="ok". Define status for partial sets 
+  (options: new enum value, or "error"). Do not infer completeness from capture count; require 
+  explicit marker.
 - Persist to `listing_capture` (run metadata) and `listing_capture_file` (per-file) tables
 - Store archive_url (Wayback snapshot URL), archive_ts (capture timestamp),
-  archive_digest (CDX SHA256)
+  archive_digest (base32 SHA-1 from CDX)
+- listing_capture_file.archive_digest will be NULL for PDFs initially; per-file digests require
+  future CDX lookups on PDF URLs (large-scale change, separate decision)
 - Only court-record PDFs under `DataSet N/` paths; exclude media and prior-disclosure
   folders (mirror FILE_URL_RE from analytics.py per D-002)
 
-**Spike findings:** See git commit spike results; doj-recon report in task output.
+**Spike findings:** Detailed findings in `SPIKE_FINDINGS.md` (includes doj-recon markup analysis).
 
 **Would change if:** (a) Wayback stops serving DOJ listings (unexpected); (b) DOJ changes markup
 structure to the point where parsing fails (would trigger version-aware parser, not abandonment);
-(c) archive_digest proves insufficient for file identity (would add SHA256 if lawful byte source
-becomes available, but not before).
+(c) archive_digest proves insufficient for file identity (would require SHA256 on PDF bytes if 
+lawful byte source becomes available, but not before).
 
-**Refs:** D-011 (third-party sources, never download from DOJ), D-013 (archive_digest as
-identity fallback), D-002 (scope to court-record PDFs), CLAUDE.md (polite requests,
-no Save-Page-Now).
->>>>>>> 8bb2bdf (docs(s0): spike findings for Wayback CDX observation source (D-014))
+**Refs:** D-011 (third-party sources, never download from DOJ), D-002 (scope to court-record PDFs),
+CLAUDE.md (polite requests, no Save-Page-Now). D-013 (change event classification rules) will 
+define how NULL archive_digest degrades event types from reuploaded_* to "unknown".
 
 ---
 

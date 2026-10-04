@@ -108,9 +108,9 @@ Two sample captures examined:
 **Go decision: YES**
 
 - Build a read-only CDX client to enumerate listing captures
-- Implement interstitial detection (status "blocked" if bot-check detected)
-- Write listing parser for DOJ's markup (structure pending doj-recon)
-- Extract file metadata (URLs, Bates IDs, CDX digests)
+- Implement interstitial detection (detect Akamai markers: bm-verify, /_sec/verify; status "blocked" if found)
+- Write listing parser for DOJ's Drupal markup (structure documented in Step 3)
+- Extract file metadata (URLs, Bates IDs, CDX base32 SHA-1 digests)
 - Write to `listing_capture` and `listing_capture_file` tables (from shared contract)
 - Schedule as daily GitHub Actions job alongside Source A
 
@@ -122,19 +122,19 @@ Two sample captures examined:
 
 **Risks & Mitigations:**
 - Wayback capture completeness: listings may be newer than available captures
-  - Mitigation: Record both "ok" (complete listing) and "empty" (no captures) status
+  - Mitigation: Define status for partial captures (not "ok"); require explicit completeness marker
 - Markup changes: DOJ may change listing HTML structure
-  - Mitigation: Robust parsing with data-attribute fallbacks; test fixtures with multiple versions
+  - Mitigation: Robust parsing with data-attribute fallbacks; synthetic test fixtures with multiple markup versions
 - Rate limiting: Wayback may throttle many serial requests
   - Mitigation: Polite delays between requests, conditional requests if supported
 
-## Next: Detailed Implementation Plan
+## Implementation Ready
 
-Once doj-recon completes, finalize D-014 with:
-- Exact markup patterns observed
-- Parser algorithm (row extraction, pagination handling)
-- Error handling strategy (interstitial detection, malformed rows)
-- Test fixture strategy (capture snapshots + expected outputs)
+D-014 is finalized with:
+- Markup patterns documented (Drupal `<ul><li>`, Bates IDs, pagination)
+- Parser algorithm defined (row extraction, pagination handling, completeness check)
+- Interstitial detection strategy (look for Akamai markers and body characteristics)
+- Test fixture strategy (SYNTHETIC reconstructions of markup shapes, never real captured HTML)
 
 Then build:
 1. `src/register/cdx_client.py` — CDX query client
