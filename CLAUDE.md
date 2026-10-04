@@ -8,9 +8,10 @@ An independent completeness and change register for the DOJ Epstein Library.
 It records what was published, what moved, and what disappeared, with verifiable
 provenance. **It does not host the documents themselves.**
 
-Read `DECISIONS.md` before proposing architecture. Most of the obvious
-suggestions have already been considered and rejected there for reasons that
-still hold.
+Before proposing architecture changes, read `docs/INDEX.md` to find the relevant
+decisions, then fetch specific `D-00N` entries by line range from `DECISIONS.md`
+using the line numbers shown. Most of the obvious suggestions have already been
+considered and rejected there for reasons that still hold.
 
 ## Hard boundaries
 
@@ -31,6 +32,15 @@ These are not preferences. Do not propose work that crosses them.
 6. **Nothing derived from document content goes to an external API.** Metadata
    fields on an explicit allowlist only. Sending data to a service publishes it.
    See D-012.
+
+## Token efficiency
+
+Use `Grep` instead of whole-file reads for lookups. Examples:
+- `Grep("change_event", glob="**/*.py")` to find all change_event references
+- `Grep("listing_capture", glob="**/*.md", output_mode="files_with_matches")` to find which docs mention a table
+- `Read(DECISIONS.md, lines=115-127)` to fetch a specific decision by its line range (from INDEX.md)
+
+Do not read ARCHITECTURE.md, SPIKE_FINDINGS.md, or full DECISIONS.md unless editing them.
 
 ## Working agreement
 

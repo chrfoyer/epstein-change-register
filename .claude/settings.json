@@ -6,7 +6,10 @@
   "permissions": {
     "deny": [
       "Read(./data/restricted/**)",
-      "Read(**/*.env)"
+      "Read(**/*.env)",
+      "Read(uv.lock)",
+      "Read(**/__pycache__/**)",
+      "Read(**/.venv/**)"
     ]
   },
   "hooks": {
