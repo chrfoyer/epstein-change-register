@@ -17,8 +17,11 @@ reads `preamble.md` plus `session-<name>.md`.
 | Name | Task | Branch | Decision no. |
 |---|---|---|---|
 | a | Slice 1 change-event classifier and report | `feat/s1-change-classifier` | D-013 |
-| b | Slice 0 Source B, Wayback listing captures | `feat/s0-wayback-source` | D-014 |
-| c | Research and docs: Jev terms, community repo, LIMITATIONS.md | `docs/s2-limitations-and-research` | D-015 |
+| b | Slice 0 Source B spike (done, merged as PR #6) | `feat/s0-wayback-source` | D-014 |
+| b2 | Slice 0 Source B implementation | `feat/s0-wayback-impl` | D-017 |
+| c | Research and docs (done, merged as PR #4) | `docs/s2-limitations-and-research` | D-015 (unused) |
+| r | Repo README and licence proposal | `docs/s5-readme` | D-018 |
+| d | SCHEMA.md, drift test and export (Slice 2 prep) | `feat/s2-schema-export` | D-019 |
 
 ## Coordination rules
 
