@@ -39,11 +39,14 @@ before anything is pretty.
 
 **Ships:** a text report of what changed, generated from real observations.
 
-- [ ] `change_event` table: `added`, `removed`, `reuploaded_identical`, `reuploaded_changed`, `moved_dataset`
-- [ ] Removal rule: absent for 2+ consecutive polls (guards against flaky listings)
-- [ ] Document identity: Bates number where present, else Wayback `archive_digest`; no fingerprint means "unknown", never "changed" (D-011)
-- [ ] CLI: `report --since 7d` prints the week's events
-- [ ] Unit tests on the event classifier with fixture data
+- [x] `change_event` table: `added`, `removed`, `reuploaded_identical`, `reuploaded_changed`, `moved_dataset`
+- [x] Schema migration + DuckDB tables (store.py)
+- [x] Classifier: deterministic, fixture-tested (classifier.py)
+- [x] Removal rule: absent for 2+ consecutive polls (guards against flaky listings)
+- [x] Document identity: Bates number where present, else Wayback `archive_digest`; no fingerprint means "unknown", never "changed" (D-011, D-013)
+- [x] CLI: `report --since 7d` prints the week's events (cli.py, entry point in pyproject.toml)
+- [~] Unit tests on the event classifier with fixture data (test_classifier.py, awaiting fixtures from fixture-builder)
+- [~] Synthetic fixtures for all scenarios (awaiting fixture-builder completion)
 
 **Done when:** the report describes a real change you can verify by hand on justice.gov.
 

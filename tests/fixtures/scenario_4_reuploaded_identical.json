@@ -1,0 +1,50 @@
+[
+  {
+    "listing": {
+      "run_id": "run_001",
+      "capture_ts": "2026-10-04T12:00:00+00:00",
+      "source_url": "https://archive.org",
+      "listing_url": "https://archive.org/DataSet 1/",
+      "archive_url": "https://archive.org/details/epstein-library",
+      "archive_ts": "2026-10-04T12:00:00+00:00",
+      "status": "ok",
+      "row_count": 1
+    },
+    "files": [
+      {
+        "run_id": "run_001",
+        "capture_ts": "2026-10-04T12:00:00+00:00",
+        "source_url": "https://archive.org",
+        "listing_url": "https://archive.org/DataSet 1/",
+        "file_url": "https://justice.gov/DataSet 1/dddddddddd.pdf",
+        "bates_id": "EFTA00000004",
+        "dataset": "DataSet 1",
+        "archive_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      }
+    ]
+  },
+  {
+    "listing": {
+      "run_id": "run_002",
+      "capture_ts": "2026-10-05T12:00:00+00:00",
+      "source_url": "https://archive.org",
+      "listing_url": "https://archive.org/DataSet 1/",
+      "archive_url": "https://archive.org/details/epstein-library",
+      "archive_ts": "2026-10-05T12:00:00+00:00",
+      "status": "ok",
+      "row_count": 1
+    },
+    "files": [
+      {
+        "run_id": "run_002",
+        "capture_ts": "2026-10-05T12:00:00+00:00",
+        "source_url": "https://archive.org",
+        "listing_url": "https://archive.org/DataSet 1/",
+        "file_url": "https://justice.gov/DataSet 1/dddddddddd_reup.pdf",
+        "bates_id": "EFTA00000004",
+        "dataset": "DataSet 1",
+        "archive_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      }
+    ]
+  }
+]

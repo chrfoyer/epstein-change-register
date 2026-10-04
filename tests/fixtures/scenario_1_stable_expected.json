@@ -1,0 +1,17 @@
+[
+  {
+    "capture_ts": "2026-10-04T12:00:00+00:00",
+    "source_url": "https://archive.org",
+    "event_type": "added",
+    "source_name": "wayback",
+    "file_url": "https://justice.gov/DataSet 1/aaaaaaaaaa.pdf",
+    "bates_id": "EFTA00000001",
+    "dataset": "DataSet 1",
+    "prior_dataset": null,
+    "archive_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "prior_archive_digest": null,
+    "archive_url": "https://archive.org/details/epstein-library",
+    "archive_ts": "2026-10-04T12:00:00+00:00",
+    "notes": null
+  }
+]

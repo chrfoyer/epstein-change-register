@@ -1,0 +1,32 @@
+[
+  {
+    "capture_ts": "2026-10-04T12:00:00+00:00",
+    "source_url": "https://archive.org",
+    "event_type": "added",
+    "source_name": "wayback",
+    "file_url": "https://justice.gov/DataSet 1/gggggggggg.pdf",
+    "bates_id": "EFTA00000006",
+    "dataset": "DataSet 1",
+    "prior_dataset": null,
+    "archive_digest": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+    "prior_archive_digest": null,
+    "archive_url": "https://archive.org/details/epstein-library",
+    "archive_ts": "2026-10-04T12:00:00+00:00",
+    "notes": null
+  },
+  {
+    "capture_ts": "2026-10-05T12:00:00+00:00",
+    "source_url": "https://archive.org",
+    "event_type": "moved_dataset",
+    "source_name": "wayback",
+    "file_url": "https://justice.gov/DataSet 2/gggggggggg.pdf",
+    "bates_id": "EFTA00000006",
+    "dataset": "DataSet 2",
+    "prior_dataset": "DataSet 1",
+    "archive_digest": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+    "prior_archive_digest": null,
+    "archive_url": "https://archive.org/details/epstein-library",
+    "archive_ts": "2026-10-05T12:00:00+00:00",
+    "notes": null
+  }
+]
