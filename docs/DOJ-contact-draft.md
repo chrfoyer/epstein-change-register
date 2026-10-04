@@ -4,8 +4,12 @@
 
 **Recipient:** DOJ Office of Public Affairs or FOIA Liaison, Department of Justice
 
-**Contact method:** [Find the appropriate liaison at](https://www.justice.gov/oip/find-foia-contact-doj/list)
-or general FOIA email: MRUFOIA.Requests@usdoj.gov, phone: (301) 583-7354.
+**Contact method:** NOT YET VERIFIED. An earlier version of this draft listed a FOIA
+email address and phone number that were never checked against a live DOJ page, so they
+were removed. Before sending, find the current contact on justice.gov yourself
+(the Office of Information Policy's FOIA contact list is the likely starting point).
+A FOIA request may also be the wrong channel for an allowlist or manifest request; a
+web-team or public-affairs contact may fit better.
 
 ---
 
