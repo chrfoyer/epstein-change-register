@@ -55,7 +55,7 @@ def _get_identity_key(bates_id: Optional[str], archive_digest: Optional[str]) ->
     return None
 
 
-def classify_listings(listings_and_files: list[dict]) -> list[ChangeEvent]:
+def classify_listings(listings_and_files: list[dict], complete_by_source: dict[str, bool] | None = None) -> list[ChangeEvent]:
     """
     Classify change events from a sequence of listing captures and their files.
 
@@ -65,6 +65,11 @@ def classify_listings(listings_and_files: list[dict]) -> list[ChangeEvent]:
             {run_id, capture_ts, source_url, listing_url, file_url, bates_id, dataset, archive_digest},
             ...
         ]
+
+    Args:
+        listings_and_files: sequence of polls with files
+        complete_by_source: dict mapping source_url -> bool indicating if listing is complete (all pages, etc.)
+                           If omitted, completeness is not checked. None on a poll means unknown.
 
     Processed in capture_ts order. Removal requires two consecutive "ok" polls with absence
     plus archive_url/archive_ts (archive proof). Returns list of ChangeEvent objects.
@@ -150,8 +155,12 @@ def classify_listings(listings_and_files: list[dict]) -> list[ChangeEvent]:
                 is_dataset_move = current_file.get("dataset") != prior_file.get("dataset")
 
                 # Check for content change (reuploaded_changed)
-                # Only if both have digests and they differ, or if this is the same bates_id with different digest
-                if archive_digest and prior_digest and archive_digest != prior_digest:
+                # Only if both digests present and they differ; cannot classify if digest is NULL (D-011)
+                if (
+                    archive_digest is not None
+                    and prior_digest is not None
+                    and archive_digest != prior_digest
+                ):
                     events.append(
                         ChangeEvent(
                             capture_ts=capture_ts,
@@ -188,9 +197,12 @@ def classify_listings(listings_and_files: list[dict]) -> list[ChangeEvent]:
                         )
                     )
                 # Check for URL change (reuploaded_identical)
-                # Only if same dataset and same digest but different URL
+                # Only if same dataset, both digests present and equal, but different URL
+                # Cannot claim identical if digest is NULL in either poll (D-011 unknown identity)
                 elif (
-                    current_file.get("file_url") != prior_file.get("file_url")
+                    archive_digest is not None
+                    and prior_digest is not None
+                    and current_file.get("file_url") != prior_file.get("file_url")
                     and archive_digest == prior_digest
                 ):
                     events.append(
