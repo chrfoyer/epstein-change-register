@@ -165,6 +165,107 @@ class TestUserAgent:
         assert "github.com/chrfoyer/epstein-change-register" in ua
 
 
+class TestListingParser:
+    """Test Drupal listing HTML parser."""
+
+    def test_extracts_files_from_ul_li_markup(self):
+        """Parse standard Drupal <ul><li> listing markup."""
+        html = """
+        <ul>
+            <li>
+                <div class="views-field views-field-title">
+                    <a href="https://justice.gov/epstein/files/DataSet 1/EFTA00000001.pdf">EFTA00000001.pdf</a>
+                </div>
+            </li>
+            <li>
+                <div class="views-field views-field-title">
+                    <a href="https://justice.gov/epstein/files/DataSet 1/EFTA00000002.pdf">EFTA00000002.pdf</a>
+                </div>
+            </li>
+        </ul>
+        """
+        files = wayback.parse_listing_files(html, "https://example.invalid")
+        assert len(files) == 2
+        assert files[0].bates_id == "EFTA00000001"
+        assert files[0].dataset == "1"
+        assert files[1].bates_id == "EFTA00000002"
+
+    def test_skips_non_dataset_pdfs(self):
+        """Skip URLs that don't match FILE_URL_RE (media, etc)."""
+        html = """
+        <ul>
+            <li>
+                <div class="views-field views-field-title">
+                    <a href="https://justice.gov/epstein/files/DataSet 1/EFTA00000001.pdf">EFTA00000001.pdf</a>
+                </div>
+            </li>
+            <li>
+                <div class="views-field views-field-title">
+                    <a href="https://justice.gov/epstein/files/Images/image123.pdf">image123.pdf</a>
+                </div>
+            </li>
+        </ul>
+        """
+        files = wayback.parse_listing_files(html, "https://example.invalid")
+        assert len(files) == 1
+        assert files[0].bates_id == "EFTA00000001"
+
+    def test_handles_empty_listing(self):
+        """Handle empty listing (no files)."""
+        html = "<ul></ul>"
+        files = wayback.parse_listing_files(html, "https://example.invalid")
+        assert files == []
+
+    def test_handles_malformed_html(self):
+        """Handle malformed HTML gracefully."""
+        html = "<div>unclosed tag"
+        files = wayback.parse_listing_files(html, "https://example.invalid")
+        # Should not crash, returns empty or partial list
+        assert isinstance(files, list)
+
+    def test_handles_missing_views_field_title_class(self):
+        """Handle markup without expected class names."""
+        html = """
+        <ul>
+            <li>
+                <div>
+                    <a href="https://justice.gov/epstein/files/DataSet 1/EFTA00000001.pdf">EFTA00000001.pdf</a>
+                </div>
+            </li>
+        </ul>
+        """
+        files = wayback.parse_listing_files(html, "https://example.invalid")
+        # No views-field-title class, so should find no files
+        assert files == []
+
+
+class TestPaginationDetection:
+    """Test pagination parsing and completeness checks."""
+
+    def test_detects_last_page_from_aria_label(self):
+        """Find last page number from pagination aria-label."""
+        html = """
+        <nav aria-label="Pagination">
+            <a aria-label="Last page" href="?page=62">63</a>
+        </nav>
+        """
+        last_page = wayback.detect_last_page(html)
+        assert last_page == 63  # Pages 0..62 = 63 total
+
+    def test_returns_none_if_no_last_page(self):
+        """Return None if last page marker not found."""
+        html = "<nav aria-label='Pagination'><a>Next</a></nav>"
+        last_page = wayback.detect_last_page(html)
+        assert last_page is None
+
+    def test_checks_complete_pagination(self):
+        """Verify a set has all pages from 0 to N-1."""
+        assert wayback.has_complete_pagination({0, 1, 2}, 3) is True
+        assert wayback.has_complete_pagination({0, 2}, 3) is False
+        assert wayback.has_complete_pagination({0, 1, 2}, 4) is False
+        assert wayback.has_complete_pagination(set(), 0) is True
+
+
 class TestFileURLRegex:
     """Test FILE_URL_RE matching for court-record PDFs."""
 

@@ -113,3 +113,103 @@ def is_interstitial(html_bytes: bytes) -> bool:
             return True
 
     return False
+
+
+@dataclass
+class ListingFile:
+    """One file row from a listing capture."""
+
+    file_url: str
+    bates_id: str
+    dataset: str
+
+
+def parse_listing_files(html: str, listing_url: str) -> list[ListingFile]:
+    """Parse DOJ listing page HTML and extract file rows.
+
+    Extracts court-record PDFs from Drupal `<ul><li>` markup.
+    Returns empty list if parsing fails or if no files are found.
+    Does not validate URLs or Bates IDs—that is done by FILE_URL_RE in persistence.
+    """
+    from html.parser import HTMLParser
+
+    files = []
+
+    class ListingParser(HTMLParser):
+        """Drupal listing parser: extract file rows from <li> elements."""
+
+        def __init__(self):
+            super().__init__()
+            self.in_li = False
+            self.in_views_field_title = False
+            self.current_file_url = None
+            self.current_bates_text = None
+
+        def handle_starttag(self, tag, attrs):
+            attr_dict = dict(attrs)
+            if tag == "li":
+                self.in_li = True
+            elif tag == "div" and attr_dict.get("class") == "views-field views-field-title":
+                self.in_views_field_title = True
+            elif tag == "a" and self.in_views_field_title:
+                self.current_file_url = attr_dict.get("href")
+
+        def handle_endtag(self, tag):
+            if tag == "li" and self.in_li:
+                # Finalize this file row
+                if self.current_file_url and self.current_bates_text:
+                    match = FILE_URL_RE.match(self.current_file_url)
+                    if match:
+                        files.append(
+                            ListingFile(
+                                file_url=self.current_file_url,
+                                bates_id=match["bates"],
+                                dataset=match["dataset"],
+                            )
+                        )
+                self.in_li = False
+                self.in_views_field_title = False
+                self.current_file_url = None
+                self.current_bates_text = None
+            elif tag == "div" and self.in_views_field_title:
+                self.in_views_field_title = False
+
+        def handle_data(self, data):
+            if self.in_views_field_title and self.current_file_url:
+                # Capture the text content of the <a> tag (should be the Bates ID)
+                text = data.strip()
+                if text and not self.current_bates_text:
+                    self.current_bates_text = text
+
+    parser = ListingParser()
+    try:
+        parser.feed(html)
+    except Exception:
+        # If parsing fails, return empty list (will be marked as error)
+        return []
+
+    return files
+
+
+def detect_last_page(html: str) -> int | None:
+    """Detect the last page number from pagination aria-label.
+
+    Returns the page count (e.g., 63 for `?page=0..62`), or None if not found.
+    """
+    import re
+
+    # Look for aria-label="Last page" in pagination nav
+    # The pagination shows page numbers 1-indexed, but URLs are 0-indexed
+    match = re.search(r'aria-label="Last page"[^>]*href="[^"]*\?page=(\d+)"', html)
+    if match:
+        # Last page URL has ?page=N, and that maps to N+1 pages (0..N)
+        return int(match.group(1)) + 1
+    return None
+
+
+def has_complete_pagination(pages_found: set[int], expected_count: int) -> bool:
+    """Check if we have all pages in the expected range.
+
+    A complete capture has all pages from 0 to expected_count-1.
+    """
+    return pages_found == set(range(expected_count))
