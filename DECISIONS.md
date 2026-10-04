@@ -296,25 +296,22 @@ reference; neither has been called by us. The OpenRouter route is an `alpha` pat
   about restricted raw payloads does not apply here.
 
 **Privacy findings:**
-- **TypeSafe:** Legal index at docs.typesafe.ai lists public URLs for Privacy Policy,
-  DPA, and MCA (typesafe.ai/legal/privacy-policy, /data-processing, /mca); these were
-  not fetched but the index confirms they commit "not to train on user data" and offer
-  "zero data retention on request" for enterprise customers. Jev 1.13 technical docs
-  list nine operational limitations but contain no information on data retention, logging,
-  or training use. Preconditions still require reading the full Privacy Policy and DPA.
-- **OpenRouter:** Metadata (token count, latency, cost, model) is retained automatically;
-  prompt and response content is not stored by default and requires opt-in to "Private
-  Input & Output Logging" or "OpenRouter Use of Inputs/Outputs" (1% discount). Zero-Data
-  Retention (ZDR) policy is available and can be enforced globally, per model group, per
-  guardrail, or per request; OpenRouter itself complies. Provider data policies vary by
-  model provider. No documentation found specifying whether the `alpha/decisions` endpoint
-  honours ZDR settings; precondition to confirm with a test call before deployment.
-
-**Recommendation:** OpenRouter route is preferable. Rationale: the maintainer has existing
-account and credits; OpenRouter's data collection opt-out is clearer and better documented
-than TypeSafe's enterprise-only terms; the alpha/decisions endpoint can be tested to confirm
-ZDR compliance before any production use. Direct TypeSafe route stays as fallback (config only,
-never runtime switch).
+- **TypeSafe:** Legal documentation exists (Privacy Policy, DPA, MCA) in the index
+  at docs.typesafe.ai, but the full policies are behind authentication; confirmed
+  from index that they commit "not to train on user data" and offer "zero data
+  retention on request" for enterprise customers. Jev 1.13 technical docs list
+  nine operational limitations but contain no information on data retention,
+  logging, or training use. Preconditions still require reading the full Privacy
+  Policy and DPA before any call; the index alone is insufficient.
+- **OpenRouter:** Metadata retention (input/output token count, latency, cost,
+  model used) is permanent and automatic; prompt and response content is not
+  stored by default and requires opt-in to "Private Input & Output Logging" or
+  "OpenRouter Use of Inputs/Outputs" (which offers 1% discount). Zero-Data
+  Retention (ZDR) policy is available and can be enforced globally, per model
+  group, per guardrail, or per request; OpenRouter itself complies with ZDR.
+  Provider data policies vary by model provider. No documentation found specifying
+  whether the `alpha/decisions` endpoint honours ZDR settings; precondition to
+  confirm with a harmless test call before deployment.
 
 **Preconditions before any implementation:**
 - read TypeSafe's Privacy Policy and DPA, the OpenRouter data-collection and ZDR
@@ -336,6 +333,66 @@ in which case drop it and say so.
 docs.typesafe.ai (API reference, legal index),
 typesafe.ai/blog/introducing-system-one-models-and-jev, openrouter.ai/docs
 (provider logging, data collection and ZDR guides).
+
+---
+
+## D-013 — Change events: source-aware claims, deterministic classifier, completeness-gated removal
+
+**Decided:** Slice 1 produces a `change_event` table with five event types, classified deterministically
+from observation tables. Source completeness gates removal events: a file can only be claimed "removed"
+if both the absence and the prior-observation polls are explicitly marked complete for their source.
+
+**Structure:**
+1. **Source and completeness:** Every event carries its source (analytics or wayback) and a claim type.
+   Source A (analytics.usa.gov top ~100 downloads) can only claim *liveness* — "this file was in the
+   top 100 on date X". It cannot claim added, removed, or moved. Source B (Wayback listing snapshots)
+   can compare consecutive polls to produce added, removed, reuploaded, and moved events IF both
+   consecutive polls are complete. An incomplete or missing ?page=N set is not complete.
+   The report surfaces these separately, plain about the limits of each.
+
+2. **Completeness rule:** 
+   - Removal requires: (a) two consecutive "ok" polls with absence; (b) BOTH polls explicitly complete
+     for that source; (c) archive proof (archive_url, archive_ts) from the prior observation.
+   - Default: incomplete. With today's data (Source B not yet built), nothing can be reported removed.
+   - Added, moved_dataset, and reuploaded events require only the current poll to be complete.
+   - Never emit added/removed/moved from Source A; Source A can only provide liveness context.
+
+3. **Identity resolution:** 
+   - Primary: Bates number (EFTA########) when present in listing_capture_file.
+   - Fallback: archive_digest (base32 SHA-1 from Wayback; NULL for Source A).
+   - Missing digest: identity is unknown. Never emit a "reuploaded_changed" or "reuploaded_identical"
+     event on an identity-unknown file; skip classification for that change (D-011 consequence).
+
+4. **Event types and rules:**
+   - **added**: file appears in a complete poll after being absent in the prior complete poll.
+   - **removed**: file absent from two consecutive COMPLETE polls, plus archive proof. Single absence
+     or incomplete polls do not trigger removal (D-007).
+   - **reuploaded_identical**: same archive_digest or bates_id under a different file_url; both
+     archive_digest values must be non-NULL.
+   - **reuploaded_changed**: different archive_digest for same bates_id; requires BOTH digests non-NULL.
+   - **moved_dataset**: same bates_id or archive_digest in a different dataset name.
+
+**Classifier:** deterministic, no external calls, fixture-tested. Given the same observations,
+always produces the same events. Takes listing_capture and listing_capture_file as inputs
+(synthetic in Slice 1, real from Source B in Slice 2). Function signature:
+`classify_listings(listings_and_files: list[dict], complete_by_source: dict[str, bool] | None = None)`.
+
+**Rejected:** (a) emitting removal on first absence (D-007 stands); (b) claiming "changed"
+when digest is unknown; (c) inferring completeness from data; (d) reporting any change events from Source A.
+
+**Why:** Source A has inherent limits (top 100 files only) that make removal claims impossible: an
+absence could be deletion or just dropping out of top 100. Requiring explicit completeness gating
+prevents false removals on partial or error-state captures. Completeness cannot be inferred because
+a capture set with missing ?page=N looks complete if you don't know it should have N pages.
+Identity-unknown changes must skip classification to avoid false "changed" claims. Source A exists
+only to spot-check liveness and provide context; it makes no change claims.
+
+**Would change if:** (a) Source B's completeness tracking proves infeasible (would relax to "ok"
+status as proxy, at cost of false removals); (b) a lawful complete-corpus byte source appears
+(changes Slice 6 PDF processing, not this logic); (c) per-file archive_digest lookups land and
+digest is no longer NULL (reuploaded_* become possible for digest-unknown files).
+
+**Refs:** D-007 (two-poll removal rule), D-011 (third-party sources, unknown identity), D-014 (Source B Wayback captures).
 
 ---
 
@@ -391,8 +448,7 @@ structure to the point where parsing fails (would trigger version-aware parser, 
 lawful byte source becomes available, but not before).
 
 **Refs:** D-011 (third-party sources, never download from DOJ), D-002 (scope to court-record PDFs),
-CLAUDE.md (polite requests, no Save-Page-Now). D-013 (change event classification rules) will 
-define how NULL archive_digest degrades event types from reuploaded_* to "unknown".
+D-013 (change event classification and completeness rules), CLAUDE.md (polite requests, no Save-Page-Now).
 
 ---
 

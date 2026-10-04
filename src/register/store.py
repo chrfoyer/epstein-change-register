@@ -35,9 +35,24 @@ SELECT file_url, bates_id, dataset,
        count(*) AS observation_count
 FROM analytics_file_observation
 GROUP BY file_url, bates_id, dataset;
+CREATE TABLE IF NOT EXISTS change_event (
+    capture_ts VARCHAR,
+    source_url VARCHAR,
+    event_type VARCHAR,
+    source_name VARCHAR,
+    file_url VARCHAR,
+    bates_id VARCHAR,
+    dataset VARCHAR,
+    prior_dataset VARCHAR,
+    archive_digest VARCHAR,
+    prior_archive_digest VARCHAR,
+    archive_url VARCHAR,
+    archive_ts VARCHAR,
+    notes VARCHAR
+);
 """
 
-TABLES = ("analytics_fetch", "analytics_file_observation", "listing_capture", "listing_capture_file")
+TABLES = ("analytics_fetch", "analytics_file_observation", "listing_capture", "listing_capture_file", "change_event")
 
 _CAPTURE_KEYS = ("run_id", "capture_ts", "source_url", "listing_url", "status")
 _FILE_KEYS = ("file_url", "bates_id", "dataset")
