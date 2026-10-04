@@ -127,6 +127,37 @@ The claim the project makes must be narrower than the claim readers want.
 
 ---
 
+## D-008 — Cost posture: opusplan, subagents on Haiku, no aggressive fan-out
+
+**Decided:** Opus plans, Sonnet executes (`opusplan`); subagents are routed to
+Haiku.
+
+**Rejected:** (a) all-Opus; (b) aggressive subagent fan-out.
+
+**Why:** the bottleneck is one 4–6h block per week, not model throughput.
+Parallel subagents start cold and are a usage driver, not a saving.
+
+**Would change if:** Slice 6 parameter sweeps become the dominant workload,
+where fan-out genuinely compresses wall-clock time.
+
+---
+
+## D-009 — Restricted content at `data/restricted/**` with a Read deny rule
+
+**Decided:** restricted content lives at `data/restricted/**`, enforced by a
+Claude Code `Read` deny rule in `.claude/settings.json`.
+
+**Rejected:** relying on convention alone.
+
+**Why:** D-004 is only as strong as what enforces it. A deny rule makes the
+separation structural rather than something the maintainer has to remember at
+23:00 while debugging.
+
+**Would change if:** the storage layout moves, in which case the deny rule path
+moves with it in the same commit.
+
+---
+
 <!-- Template for new entries:
 
 ## D-00N — <one-line decision>

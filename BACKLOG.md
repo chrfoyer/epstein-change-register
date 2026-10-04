@@ -22,6 +22,7 @@ Status: `[ ]` todo · `[~]` in progress · `[x]` done · `[-]` dropped (say why)
 week of delay is a week of history that cannot be recovered later. Ship this
 before anything is pretty.
 
+- [ ] Scaffolding: `pyproject.toml`, `uv` setup, `.gitignore`, CI skeleton (pytest on push)
 - [ ] Enumerate DOJ dataset listing page URLs (Court Records / DOJ Disclosures PDFs only)
 - [ ] Scheduled job: walk listings, record `url`, `etag`, `last_modified`, `first_seen`, `last_seen`
 - [ ] Download changed files only; compute and store `sha256`
@@ -111,7 +112,7 @@ is still poor, drop it and write up why in `LIMITATIONS.md`. That write-up is
 itself a good outcome.
 
 - [ ] Rasterise at 150 DPI; dark-pixel ratio per page
-- [ ] Threshold tuning against 20 hand-labelled pages
+- [ ] Threshold tuning against 20 hand-labelled pages — parallel path: `threshold-tuner` subagents, one parameter combination each
 - [ ] Change event on coverage delta above threshold
 - [ ] Side-by-side page render, changed regions highlighted
 - [ ] Dual-layer extraction: embedded text vs. OCR of render

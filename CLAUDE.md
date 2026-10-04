@@ -64,6 +64,25 @@ explicitly optional — see D-005.
 - Every table that records an observation carries `capture_ts` and `source_url`.
 - Bronze is append-only. Never update or delete a bronze row. See D-006.
 
+## Subagents
+
+Four agents live in `.claude/agents/`. Subagents run on Haiku (see D-008).
+
+- **boundary-auditor** — run before every commit. Read-only; reports
+  violations, never fixes them.
+- **doj-recon** — use to survey DOJ listing pages instead of fetching them
+  directly. One instance per page, HEAD requests only for PDFs.
+- **fixture-builder** — owns `tests/fixtures/`. Synthetic data only.
+- **threshold-tuner** — Slice 6 only. Parallel parameter sweeps, one
+  combination per instance.
+
+## Restricted content
+
+Restricted content (recovered redaction text, D-004) lives at
+`data/restricted/**`. It is covered by a `Read` deny rule in
+`.claude/settings.json`; see D-009. If the storage layout moves, move the
+deny rule in the same commit.
+
 ## Testing
 
 - Any change to the change-event classifier needs a fixture test.

@@ -1,0 +1,19 @@
+# Document and media content (D-003)
+*.pdf
+*.tif
+*.jpg
+*.png
+*.mp4
+*.zip
+
+# Local databases
+*.duckdb
+*.duckdb.wal
+
+# All local data, including data/restricted (D-009)
+data/
+
+# Python
+.venv/
+__pycache__/
+.pytest_cache/
