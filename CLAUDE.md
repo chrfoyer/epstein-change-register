@@ -53,7 +53,8 @@ multi-week gaps. Optimise for picking the project back up cold.
 
 - Python 3.12+, `uv` for dependency management
 - DuckDB for storage; Parquet for published outputs
-- `httpx` for fetching, `pymupdf` for PDF inspection
+- `httpx` for fetching, `pymupdf` for PDF inspection (not usable on DOJ PDFs
+  until a lawful byte source exists; Slice 6 is blocked, see D-011)
 - `pytest` for tests; GitHub Actions for scheduling and CI
 - Windows development machine; keep paths and shell commands portable
 

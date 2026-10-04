@@ -41,7 +41,7 @@ before anything is pretty.
 
 - [ ] `change_event` table: `added`, `removed`, `reuploaded_identical`, `reuploaded_changed`, `moved_dataset`
 - [ ] Removal rule: absent for 2+ consecutive polls (guards against flaky listings)
-- [ ] Document identity: Bates number where present, else content fingerprint
+- [ ] Document identity: Bates number where present, else Wayback `archive_digest`; no fingerprint means "unknown", never "changed" (D-011)
 - [ ] CLI: `report --since 7d` prints the week's events
 - [ ] Unit tests on the event classifier with fixture data
 
@@ -111,6 +111,11 @@ before anything is pretty.
 **Risk:** scan noise can eat unlimited time. Timebox to two slices; if precision
 is still poor, drop it and write up why in `LIMITATIONS.md`. That write-up is
 itself a good outcome.
+**Blocked (D-011):** every item below needs PDF bytes, and justice.gov PDFs sit
+behind an age gate we do not pass. Do not start this slice until there is a lawful
+byte source (DOJ feed or allowlist, verified Wayback PDF captures, or a mirror
+with its own decision). If none appears, the slice becomes the `LIMITATIONS.md`
+write-up.
 
 - [ ] Rasterise at 150 DPI; dark-pixel ratio per page
 - [ ] Threshold tuning against 20 hand-labelled pages — parallel path: `threshold-tuner` subagents, one parameter combination each
