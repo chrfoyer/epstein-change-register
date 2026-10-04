@@ -255,22 +255,75 @@ for these calls, since they are bounded yes/no or pick-one judgments.
 
 **Why:** the fit is real: these are cheap, bounded judgments. Vendor-claimed
 pricing is $0.042 per million input tokens with 70–500 ms latency, unverified by
-us. But an external API is a publication channel, and TypeSafe's launch post says
-nothing about retention or training use.
+us. But an external API is a publication channel, and the launch post says nothing
+about retention or training use; the privacy findings below are only partial.
+
+**Provider:** OpenRouter, because the maintainer already has an account and
+credits. `POST https://openrouter.ai/api/alpha/decisions`, model
+`~typesafe/jev-latest`, `Authorization: Bearer $OPENROUTER_API_KEY`. The direct
+TypeSafe endpoint (`POST https://api.typesafe.ai/v1/systemone`, model `jev-latest`,
+`TYPESAFE_API_KEY`) is the same contract and stays the fallback to switch to by
+config, never at runtime. Both are taken from the example repo and TypeSafe's API
+reference; neither has been called by us. The OpenRouter route is an `alpha` path.
+
+**API shape** (one call, several independent questions, no prose):
+- Request: `{model, state, questions}`. `state` is a string, object or array.
+  `questions` maps our own ids to `noul` (yes/no), `choice` (up to 255 options) or
+  `score` (2–10 ordered levels), each with `instructions` and `criteria`. Ids are
+  for our code and are not sent to the model.
+- Response: `{model, answers, usage}`. A noul gives a probability of yes; a choice
+  gives the winner, all probabilities and a confidence; a score gives a fractional
+  position, a legend, probabilities and a confidence. `usage` has input and output
+  tokens, and a cost field on some providers.
+- Statuses: 401 bad key, 422 invalid request, 429 and 529 retry with exponential
+  backoff.
+
+**Design rules taken from the cookbook:**
+- Client in Python with `httpx` (same stack as `analytics.py`), not the TypeScript
+  starter and not an extra SDK. Serial calls, a hard timeout, bounded retries on
+  429, 502, 503 and 529 only, redirects refused.
+- Confidence is never permission. A high-confidence answer may raise a flag or fill
+  card text; it may not emit a change event, widen scope, or approve anything.
+- The scope gate is one `choice` question over `court_record_pdf`, `media`,
+  `other`, `unclear`, with the DOJ path and page title as `state`. Anything other
+  than a high-confidence `court_record_pdf` goes to human review. A noul near 0 is a
+  strong no, not low confidence: abstention needs an explicit uncertain branch.
+- Unknown cost is recorded as unknown, never as zero. Never switch providers on
+  failure; on outage the feature is simply skipped.
+- Pin the resolved model and a rubric version in `llm_decision`, since an alias
+  update can shift behaviour while the JSON contract still passes. Because the input
+  is allowlisted metadata, the full request can be stored; the cookbook's concern
+  about restricted raw payloads does not apply here.
+
+**Privacy findings (not yet sufficient):**
+- TypeSafe's legal index lists a Privacy Policy that states a commitment not to
+  train on user data, a Data Processing Agreement, and zero data retention on
+  request for enterprise customers. I have read the index, not the documents.
+- OpenRouter does not store prompt or response content unless logging is opted
+  into, keeps request metadata (tokens, latency, model, cost), and can enforce
+  zero-data-retention routing. Whether the `alpha/decisions` endpoint honours that
+  is unknown.
 
 **Preconditions before any implementation:**
-- written data retention and training terms from TypeSafe;
-- access: the model is early-access signup only, so the code must work with it
-  disabled, and disabled is the default;
-- API key as a GitHub Actions secret, never committed;
+- read TypeSafe's Privacy Policy and DPA, the OpenRouter data-collection and ZDR
+  settings, and TypeSafe's published Jev limitations page; set the OpenRouter
+  account to deny data collection and confirm the setting applies to this endpoint
+  with a harmless test call;
+- access works on the maintainer's OpenRouter account; the code must still work
+  with the feature disabled, and disabled is the default;
+- API key as a GitHub Actions secret, never committed, never printed;
 - an input allowlist enforced in code and covered by a test that fails on any
-  non-allowlisted field.
+  non-allowlisted field;
+- a labelled sample of real DOJ paths to check the scope gate before it is trusted.
 
-**Would change if:** terms are unacceptable, access is unavailable, or the
-metadata turns out too thin to classify, in which case drop it and say so.
+**Would change if:** terms are unacceptable, the alpha endpoint is withdrawn or
+cannot honour the privacy settings, or the metadata turns out too thin to classify,
+in which case drop it and say so.
 
-**Sources:** github.com/disler/ten-levels-of-jev (MIT; confidence gating and
-cheap-routing patterns), typesafe.ai/blog/introducing-system-one-models-and-jev.
+**Sources:** github.com/disler/ten-levels-of-jev (MIT; client, types and cookbook),
+docs.typesafe.ai (API reference, legal index),
+typesafe.ai/blog/introducing-system-one-models-and-jev, openrouter.ai/docs
+(provider logging, data collection and ZDR guides).
 
 ---
 
