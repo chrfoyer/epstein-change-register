@@ -1,8 +1,9 @@
 # Session A (Slice 1 Classifier) Status
 
 **Branch**: feat/s1-change-classifier
-**Commit**: fcf6e12 (rebased on contract PR)
-**Status**: Complete, ready for review
+**Latest commit**: 8417376 (feat: completeness gating)
+**Status**: PR #11 open, awaiting coordinator review
+**PR URL**: https://github.com/chrfoyer/epstein-change-register/pull/11
 
 ## Deliverables
 
