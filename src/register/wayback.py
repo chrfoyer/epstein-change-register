@@ -5,15 +5,21 @@ Serial requests only; 2 seconds between CDX queries. Never fetches PDFs directly
 Detects Akamai interstitials and records them as 'blocked' captures.
 """
 
+import argparse
 import json
 import os
 import re
+import sys
 import time
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Optional
 
+import duckdb
 import httpx
+
+from register import store
 
 # D-002: PDFs under a numbered DataSet only.
 FILE_URL_RE = re.compile(
@@ -213,3 +219,205 @@ def has_complete_pagination(pages_found: set[int], expected_count: int) -> bool:
     A complete capture has all pages from 0 to expected_count-1.
     """
     return pages_found == set(range(expected_count))
+
+
+# DOJ Wayback listing page URLs (from spike findings, D-014)
+LISTING_URLS = [
+    ("main", "https://justice.gov/epstein/doj-disclosures"),
+    ("dataset-1", "https://justice.gov/epstein/doj-disclosures/data-set-1-files"),
+    ("dataset-2", "https://justice.gov/epstein/doj-disclosures/data-set-2-files"),
+    ("dataset-3", "https://justice.gov/epstein/doj-disclosures/data-set-3-files"),
+    ("dataset-12", "https://justice.gov/epstein/doj-disclosures/data-set-12-files"),
+    ("first-phase", "https://justice.gov/epstein/doj-disclosures/first-phase-production-files"),
+]
+
+POLITE_DELAY_SECONDS = 2
+
+
+def fetch_wayback_snapshot(client: httpx.Client, archive_url: str) -> bytes | None:
+    """Fetch a Wayback snapshot and return its HTML body, or None if it fails."""
+    try:
+        response = client.get(archive_url, timeout=30)
+        response.raise_for_status()
+        return response.content
+    except httpx.HTTPError:
+        return None
+
+
+def run(con: duckdb.DuckDBPyConnection, client: httpx.Client) -> str:
+    """Poll Wayback CDX for DOJ listing snapshots and persist observations.
+
+    Returns 'ok' if at least one capture was successfully processed, or an error status.
+    """
+    run_id = uuid.uuid4().hex
+    ts = now_utc()
+    capture_count = 0
+    error_count = 0
+
+    for listing_name, listing_url in LISTING_URLS:
+        time.sleep(POLITE_DELAY_SECONDS)
+        captures = cdx_search(client, listing_url)
+        if captures is None:
+            error_count += 1
+            continue
+
+        # For each capture, try to fetch and parse it
+        for capture in captures:
+            archive_url = f"https://web.archive.org/web/{capture.timestamp}/{listing_url}"
+            html_bytes = fetch_wayback_snapshot(client, archive_url)
+
+            if html_bytes is None:
+                # Network error; treat as 'error' status
+                store.append_listing_capture(
+                    con,
+                    {
+                        "run_id": run_id,
+                        "capture_ts": ts,
+                        "source_url": f"https://web.archive.org/cdx/search/cdx",
+                        "listing_url": listing_url,
+                        "archive_url": archive_url,
+                        "archive_ts": capture.timestamp,
+                        "status": "error",
+                    },
+                    [],
+                )
+                error_count += 1
+                time.sleep(POLITE_DELAY_SECONDS)
+                continue
+
+            # Check for interstitial
+            if is_interstitial(html_bytes):
+                store.append_listing_capture(
+                    con,
+                    {
+                        "run_id": run_id,
+                        "capture_ts": ts,
+                        "source_url": f"https://web.archive.org/cdx/search/cdx",
+                        "listing_url": listing_url,
+                        "archive_url": archive_url,
+                        "archive_ts": capture.timestamp,
+                        "status": "blocked",
+                    },
+                    [],
+                )
+                time.sleep(POLITE_DELAY_SECONDS)
+                continue
+
+            # Parse listing files
+            html = html_bytes.decode("utf-8", errors="ignore")
+            files = parse_listing_files(html, listing_url)
+
+            # Detect last page for completeness check
+            last_page = detect_last_page(html)
+
+            # If we have a single page (no pagination), mark it ok
+            if last_page is None and files:
+                store.append_listing_capture(
+                    con,
+                    {
+                        "run_id": run_id,
+                        "capture_ts": ts,
+                        "source_url": f"https://web.archive.org/cdx/search/cdx",
+                        "listing_url": listing_url,
+                        "archive_url": archive_url,
+                        "archive_ts": capture.timestamp,
+                        "status": "ok",
+                        "archive_digest": capture.digest,
+                    },
+                    [
+                        {
+                            "file_url": f["file_url"],
+                            "bates_id": f["bates_id"],
+                            "dataset": f["dataset"],
+                            "archive_digest": capture.digest,
+                        }
+                        for f in files
+                    ],
+                )
+                capture_count += 1
+                time.sleep(POLITE_DELAY_SECONDS)
+                continue
+
+            # If pagination exists, we need all pages for a complete capture
+            # For now, mark single-page captures as ok; multi-page incomplete as partial
+            # (Full pagination fetching is a future concern per D-014)
+            if last_page is not None and last_page > 1:
+                # Multi-page listing, but we only have one page: mark as partial
+                store.append_listing_capture(
+                    con,
+                    {
+                        "run_id": run_id,
+                        "capture_ts": ts,
+                        "source_url": f"https://web.archive.org/cdx/search/cdx",
+                        "listing_url": listing_url,
+                        "archive_url": archive_url,
+                        "archive_ts": capture.timestamp,
+                        "status": "partial",
+                    },
+                    [],
+                )
+            elif files:
+                # Single page (no pagination), has files: mark as ok
+                store.append_listing_capture(
+                    con,
+                    {
+                        "run_id": run_id,
+                        "capture_ts": ts,
+                        "source_url": f"https://web.archive.org/cdx/search/cdx",
+                        "listing_url": listing_url,
+                        "archive_url": archive_url,
+                        "archive_ts": capture.timestamp,
+                        "status": "ok",
+                        "archive_digest": capture.digest,
+                    },
+                    [
+                        {
+                            "file_url": f["file_url"],
+                            "bates_id": f["bates_id"],
+                            "dataset": f["dataset"],
+                            "archive_digest": capture.digest,
+                        }
+                        for f in files
+                    ],
+                )
+                capture_count += 1
+            else:
+                # No files found
+                store.append_listing_capture(
+                    con,
+                    {
+                        "run_id": run_id,
+                        "capture_ts": ts,
+                        "source_url": f"https://web.archive.org/cdx/search/cdx",
+                        "listing_url": listing_url,
+                        "archive_url": archive_url,
+                        "archive_ts": capture.timestamp,
+                        "status": "empty",
+                    },
+                    [],
+                )
+
+            time.sleep(POLITE_DELAY_SECONDS)
+
+    return "ok" if capture_count > 0 else "error"
+
+
+def main() -> int:
+    """CLI entry point for Source B."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--db", default="data/register.duckdb")
+    parser.add_argument("--import-dir", help="restore bronze state from Parquet before running")
+    parser.add_argument("--export-dir", help="write bronze state to Parquet after running")
+    args = parser.parse_args()
+
+    con = store.connect(args.db, args.import_dir)
+    with httpx.Client(headers={"User-Agent": user_agent()}, timeout=30, follow_redirects=False) as client:
+        status = run(con, client)
+    if args.export_dir:
+        store.export(con, args.export_dir)
+    print(f"wayback listing capture: {status}")
+    return 0 if status == "ok" else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
