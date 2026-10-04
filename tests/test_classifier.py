@@ -11,18 +11,28 @@ from register.classifier import ChangeEvent, classify_listings
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 
-def load_fixture(scenario_name: str) -> tuple[list[dict], list[dict]]:
-    """Load a fixture: input data and expected output."""
+def load_fixture(scenario_name: str) -> tuple[list[dict], dict | None, list[dict]]:
+    """Load a fixture: input data, complete_by_source (if present), and expected output."""
     input_file = FIXTURES_DIR / f"{scenario_name}.json"
-    expected_file = FIXTURES_DIR / f"{scenario_name}_expected.json"
 
     with open(input_file) as f:
-        input_data = json.load(f)
+        data = json.load(f)
 
-    with open(expected_file) as f:
-        expected = json.load(f)
+    # Check if this is new format (dict with "input" key) or old format (direct list)
+    if isinstance(data, dict) and "input" in data:
+        # New format: {input: [...], expected: [...], complete_by_source: {...}}
+        input_data = data["input"]
+        complete_by_source = data.get("complete_by_source")
+        expected = data.get("expected", [])
+    else:
+        # Old format: data is the input directly, look for separate expected file
+        input_data = data
+        complete_by_source = None
+        expected_file = FIXTURES_DIR / f"{scenario_name}_expected.json"
+        with open(expected_file) as f:
+            expected = json.load(f)
 
-    return input_data, expected
+    return input_data, complete_by_source, expected
 
 
 def normalize_event(event: ChangeEvent | dict) -> dict:
@@ -41,12 +51,14 @@ def normalize_event(event: ChangeEvent | dict) -> dict:
     "scenario_6_moved",
     "scenario_7_error",
     "scenario_8_empty",
+    "scenario_9_incomplete_no_removal",
+    "scenario_10_complete_with_removal",
 ])
 def test_classifier_scenarios(scenario: str):
     """Test classifier against all scenarios."""
-    input_data, expected = load_fixture(scenario)
+    input_data, complete_by_source, expected = load_fixture(scenario)
 
-    events = classify_listings(input_data)
+    events = classify_listings(input_data, complete_by_source=complete_by_source)
     actual = [normalize_event(e) for e in events]
 
     # Sort for comparison (order shouldn't matter for correctness)

@@ -51,20 +51,28 @@ Expected table contract per D-016:
 
 Non-ok captures must carry zero file rows (enforced by append_listing_capture).
 
+## Completeness Gating (D-013 Implementation)
+
+Per coordinator review, removal events now require explicit completeness marking:
+- Removal only emitted when BOTH consecutive polls are marked complete in `complete_by_source` dict
+- Default: incomplete (no removal can be claimed)
+- Added two fixture tests: scenario_9 (incomplete→no removal) and scenario_10 (complete→removal)
+- All 12 tests now pass with completeness constraints
+- Fixtures converted to unified format: `{input, expected, complete_by_source}`
+
 ## Next Steps
 
-1. Open PR on feat/s1-change-classifier
-2. Rebase on origin/main (contract already landed as PR #5)
-3. Coordinate with session B once listing_capture rows start flowing
-4. CLI can integrate with `report --since` to query change_event table
+1. Open PR on feat/s1-change-classifier (merge-commit style, Refs: D-013)
+2. Coordinator review
+3. Merge and coordinate with session B for integration once listing_capture rows flow
+4. CLI integration: `report --since` will respect completeness constraints
 
 ## Notes
 
-- fixture-builder agent (background task) completed successfully and generated all 8 scenarios + expected outputs
-- store.py already has contract imports and append_listing_capture helper (from session B's PR)
-- All tests pass post-rebase; no conflicts with contract DDL
-- Incorporated design facts from B's spike (PR #6 spike findings):
-  - archive_digest will be NULL for most rows initially (per-file CDX lookups deferred)
-  - reuploaded_identical/reuploaded_changed now gracefully degrade when digest is NULL
-  - Added complete_by_source parameter to classify_listings for future completeness input (not yet used in rules)
-  - Commit 9f7e834: explicit NULL checks; all 10 tests still pass
+- Coordinator's design facts incorporated (D-014 spike findings):
+  - archive_digest NULL handling: reuploaded_* skip classification when digest is NULL (D-011)
+  - Completeness is explicit, never inferred (prevents false removals on partial captures)
+  - Per-file archive_digest will be NULL initially; separate CDX lookups needed
+  - Only Source B (Wayback) can emit change events; Source A (analytics) liveness-only
+- append_listing_capture came from coordinator's PR #5, not session B
+- All 12 tests pass; boundary audit clean

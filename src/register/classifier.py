@@ -68,21 +68,26 @@ def classify_listings(listings_and_files: list[dict], complete_by_source: dict[s
 
     Args:
         listings_and_files: sequence of polls with files
-        complete_by_source: dict mapping source_url -> bool indicating if listing is complete (all pages, etc.)
-                           If omitted, completeness is not checked. None on a poll means unknown.
+        complete_by_source: dict mapping source_url -> bool indicating if listing is complete (all pages, etc.).
+                           If source not in dict, defaults to False (incomplete). None values mean unknown.
 
-    Processed in capture_ts order. Removal requires two consecutive "ok" polls with absence
-    plus archive_url/archive_ts (archive proof). Returns list of ChangeEvent objects.
+    Processed in capture_ts order. Removal requires two consecutive "ok" polls (both explicitly complete)
+    with absence plus archive_url/archive_ts (archive proof, D-007). Returns list of ChangeEvent objects.
     """
     if not listings_and_files:
         return []
+
+    if complete_by_source is None:
+        complete_by_source = {}
 
     events = []
     # Maps: identity_key -> list of (capture_ts, file_record or None)
     # where identity_key is either bates_id (preferred) or archive_digest
     file_history: dict[str, list[tuple[str, dict | None]]] = {}
-    # Track prior poll's contents to detect removals
+    # Track prior poll's contents and completeness to detect removals
     prior_poll_ids: set[str] | None = None
+    prior_poll_complete: bool = False
+    prior_poll_source: str | None = None
 
     for item in listings_and_files:
         listing = item.get("listing", {})
@@ -96,7 +101,12 @@ def classify_listings(listings_and_files: list[dict], complete_by_source: dict[s
         if status != "ok":
             # error | blocked | empty listings emit nothing (D-007), don't trigger removal
             prior_poll_ids = None  # Reset so next ok poll doesn't trigger removal
+            prior_poll_complete = False
+            prior_poll_source = None
             continue
+
+        # Check if this poll is marked complete (default: incomplete)
+        current_poll_complete = complete_by_source.get(source_url, False)
 
         # Build identity->file map for this poll
         current_files: dict[str, dict] = {}
@@ -223,11 +233,12 @@ def classify_listings(listings_and_files: list[dict], complete_by_source: dict[s
                     )
 
         # Check for removals: file was present before, absent in prior poll AND absent now (D-007)
-        if prior_poll_ids is not None:
-            # We have a prior ok poll to compare against
+        # Removal also requires BOTH consecutive polls to be marked complete (D-013)
+        if prior_poll_ids is not None and prior_poll_complete and current_poll_complete:
+            # We have two consecutive complete ok polls to compare against
             for identity_key in file_history:
                 if identity_key not in current_ids and identity_key not in prior_poll_ids:
-                    # File is absent in both prior and current polls
+                    # File is absent in both prior and current polls, and both are complete
                     # Get the last known state before absence
                     last_known = None
                     for ts, rec in reversed(file_history[identity_key]):
@@ -239,8 +250,8 @@ def classify_listings(listings_and_files: list[dict], complete_by_source: dict[s
                         bates_id = last_known.get("bates_id")
                         archive_digest = last_known.get("archive_digest")
 
-                        # Only emit removal if we have identity
-                        if bates_id or archive_digest:
+                        # Only emit removal if we have identity and archive proof (D-007)
+                        if (bates_id or archive_digest) and archive_url and archive_ts:
                             events.append(
                                 ChangeEvent(
                                     capture_ts=capture_ts,
@@ -265,5 +276,7 @@ def classify_listings(listings_and_files: list[dict], complete_by_source: dict[s
 
         # Update prior poll info for next iteration
         prior_poll_ids = current_ids
+        prior_poll_complete = current_poll_complete
+        prior_poll_source = source_url
 
     return events
