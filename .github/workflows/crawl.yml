@@ -2,7 +2,7 @@ name: crawl
 
 on:
   schedule:
-    - cron: "17 5 * * *"   # daily; the source is a once-a-day CSV
+    - cron: "17 5 * * *"   # daily; both Source A and B run on schedule
   workflow_dispatch:
 
 concurrency:
@@ -45,4 +45,38 @@ jobs:
           git config user.email "register-bot@users.noreply.github.com"
           git add -A
           git diff --cached --quiet || git commit -m "data: analytics poll $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          git push origin HEAD:data
+
+  wayback:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+
+      # Bronze state lives as Parquet on an orphan `data` branch. Metadata only.
+      - name: Restore state
+        run: |
+          if git ls-remote --exit-code --heads origin data >/dev/null 2>&1; then
+            git worktree add state origin/data
+          else
+            mkdir state
+          fi
+
+      - name: Poll Wayback listing captures
+        env:
+          REGISTER_CONTACT: ${{ vars.REGISTER_CONTACT }}
+        run: uv run python -m register.wayback --db ":memory:" --import-dir state --export-dir state
+
+      - name: Publish state
+        run: |
+          cd state
+          if [ ! -d .git ] && [ ! -f .git ]; then
+            git init -q -b data
+            git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          fi
+          git config user.name "register-bot"
+          git config user.email "register-bot@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "data: wayback poll $(date -u +%Y-%m-%dT%H:%M:%SZ)"
           git push origin HEAD:data

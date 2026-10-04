@@ -488,6 +488,28 @@ ascending) after a rebase deleted D-016 and left a marker that CI could not see.
 
 ---
 
+## D-017 — Partial-capture status for incomplete Wayback listing downloads
+
+**Decided:** add a `partial` status to the `listing_capture.status` enum, distinct from
+`ok`, `blocked`, `error`, and `empty`.
+
+**Rejected:** reusing `error` for partial captures.
+
+**Why:** A partial capture (missing some `?page=N` pages) is semantically different
+from an error (network failure, parse failure). Reusing `error` would conflate
+incomplete data with actual failures, making it harder for the classifier to decide
+whether to trust completeness assertions. A partial capture is valid observational
+data—it tells us what was captured—even though it cannot count as a complete listing
+snapshot. Downstream logic can then distinguish "we got partial data" from "something
+broke".
+
+**Would change if:** the classifier (Slice 1) finds no need to distinguish partial
+captures from errors, in which case we can simplify back to `error`.
+
+**Refs:** D-014 (Source B listing capture completeness rules).
+
+---
+
 ## D-018 — Code and metadata licensing (Proposed)
 
 **Status:** Proposed. The maintainer chooses, and a follow-up PR adds LICENSE files.
