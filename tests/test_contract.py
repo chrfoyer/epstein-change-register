@@ -12,7 +12,7 @@ CAPTURE = {
     "source_url": "https://web.archive.org/cdx/search/cdx",
     "listing_url": "https://example.invalid/listing",
     "archive_url": "https://web.archive.org/web/20260101000000/https://example.invalid/listing",
-    "archive_ts": "20260101000000",
+    "archive_ts": "2026-01-01T00:00:00+00:00",
     "status": "ok",
 }
 FILES = [
@@ -75,6 +75,38 @@ def test_parquet_roundtrip_includes_contract_tables(tmp_path):
     store.export(con, str(tmp_path))
     restored = store.connect(":memory:", import_dir=str(tmp_path))
     assert restored.execute("SELECT count(*) FROM listing_capture_file").fetchone()[0] == 2
+
+
+def test_export_creates_both_parquet_and_csv(tmp_path):
+    con = store.connect(":memory:")
+    store.append_listing_capture(con, CAPTURE, FILES)
+    store.export(con, str(tmp_path))
+
+    # Check that both Parquet and CSV files exist for each table
+    for table in store.TABLES:
+        parquet_file = tmp_path / f"{table}.parquet"
+        csv_file = tmp_path / f"{table}.csv"
+        assert parquet_file.exists(), f"{table}.parquet not created"
+        assert csv_file.exists(), f"{table}.csv not created"
+        assert parquet_file.stat().st_size > 0, f"{table}.parquet is empty"
+        assert csv_file.stat().st_size > 0, f"{table}.csv is empty"
+
+
+def test_csv_export_has_headers(tmp_path):
+    con = store.connect(":memory:")
+    store.append_listing_capture(con, CAPTURE, FILES)
+    store.export(con, str(tmp_path))
+
+    # Check that listing_capture_file CSV has a header row
+    csv_file = tmp_path / "listing_capture_file.csv"
+    lines = csv_file.read_text().splitlines()
+    assert len(lines) >= 2, "CSV file should have header and data rows"
+
+    header = lines[0]
+    # Should contain the expected columns
+    assert "run_id" in header
+    assert "file_url" in header
+    assert "bates_id" in header
 
 
 def test_bronze_is_append_only_in_source():
