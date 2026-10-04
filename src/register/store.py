@@ -107,8 +107,13 @@ def connect(db_path: str, import_dir: str | None = None) -> duckdb.DuckDBPyConne
 
 
 def export(con: duckdb.DuckDBPyConnection, export_dir: str) -> None:
-    """Write each bronze table to Parquet. Metadata only."""
+    """Write each bronze table to Parquet and CSV. Metadata only."""
     Path(export_dir).mkdir(parents=True, exist_ok=True)
     for table in TABLES:
-        target = (Path(export_dir) / f"{table}.parquet").as_posix()
-        con.execute(f"COPY {table} TO '{target}' (FORMAT PARQUET)")
+        parquet_target = (Path(export_dir) / f"{table}.parquet").as_posix()
+        csv_target = (Path(export_dir) / f"{table}.csv").as_posix()
+        # Escape single quotes in paths for SQL
+        parquet_escaped = parquet_target.replace("'", "''")
+        csv_escaped = csv_target.replace("'", "''")
+        con.execute(f"COPY {table} TO '{parquet_escaped}' (FORMAT PARQUET)")
+        con.execute(f"COPY {table} TO '{csv_escaped}' (FORMAT CSV, HEADER)")

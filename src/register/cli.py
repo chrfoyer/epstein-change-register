@@ -8,7 +8,7 @@ from pathlib import Path
 import duckdb
 
 from register.classifier import classify_listings
-from register.store import connect
+from register.store import connect, export
 
 
 def parse_args():
@@ -38,6 +38,21 @@ def parse_args():
         choices=["text", "json", "csv"],
         default="text",
         help="Output format",
+    )
+
+    # export command
+    export_parser = subparsers.add_parser("export", help="Export bronze tables to Parquet and CSV")
+    export_parser.add_argument(
+        "--db",
+        type=str,
+        default=":memory:",
+        help="Database path (default: in-memory)",
+    )
+    export_parser.add_argument(
+        "--out",
+        type=str,
+        required=True,
+        help="Output directory for Parquet and CSV files",
     )
 
     return parser.parse_args()
@@ -180,6 +195,13 @@ def main():
             output = format_text_report(events)
 
         print(output, end="")
+    elif args.command == "export":
+        con = connect(args.db)
+        try:
+            export(con, args.out)
+            print(f"Exported bronze tables to {args.out}")
+        finally:
+            con.close()
     else:
         print("No command specified. Use --help for usage.", file=sys.stderr)
         sys.exit(1)

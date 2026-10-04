@@ -551,6 +551,26 @@ Consult legal counsel if:
 
 ---
 
+## D-019 — Schema versioning with semantic versioning rules
+
+**Decided:** SCHEMA.md is the authoritative contract for bronze tables. Schema changes follow semantic versioning (MAJOR.MINOR.PATCH). Breaking changes (rename, type change, removed column) bump MAJOR. Compatible changes (new nullable column, relaxed constraint) bump MINOR. Documentation updates or new data bump PATCH or no change.
+
+**Rejected:** (a) unversioned schema, which risks silent breakage downstream; (b) per-table versioning, which adds complexity with no benefit for a single-database project.
+
+**Why:** The schema is the contract between Slice 2 (data export) and downstream consumers. Semantic versioning signals when a consumer must update their code. Explicit breaking/compatible rules allow automation. Consumers pin major version at ingest.
+
+**Implementation:**
+- SCHEMA.md at repo root with column-by-column documentation (type, nullability, meaning, example).
+- Column contract rules documented in SCHEMA.md (breaking vs compatible).
+- Drift test suite (test_schema_docs.py) that fails when SCHEMA.md and DDL disagree on column names or types.
+- No code-header boilerplate required; schema is documented once in SCHEMA.md.
+
+**Would change if:** multiple independent tables with independent release cycles become necessary (not the case here), in which case version each table separately.
+
+**Refs:** D-001 (provenance), D-006 (append-only), D-013 (change events).
+
+---
+
 <!-- Template for new entries:
 
 ## D-00N — <one-line decision>
