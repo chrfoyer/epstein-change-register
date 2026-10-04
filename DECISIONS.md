@@ -327,6 +327,33 @@ typesafe.ai/blog/introducing-system-one-models-and-jev, openrouter.ai/docs
 
 ---
 
+## D-016 — Parallel sessions: contracts in code, one worktree each, handover files
+
+**Decided:** when running several Claude Code sessions in parallel, each works in
+its own git worktree created by `scripts/new_session.py`. Cross-session table
+contracts live in code (`src/register/contract.py`, written through
+`store.append_listing_capture`) and are checked by `tests/test_contract.py`.
+Session prompts live in `docs/handover/` and start with `/session-start <name>`.
+Sessions record status in `docs/handover/<name>-status.md` and do not edit
+`BACKLOG.md`; the coordinator folds it in after merge.
+
+**Rejected:** (a) pasting the table contract into each prompt, which let two
+sessions define the same tables differently and relied on review to notice;
+(b) every session editing `BACKLOG.md` and `DECISIONS.md`, the two files most
+likely to conflict; (c) one shared checkout.
+
+**Why:** the bottleneck is the maintainer's review time (D-008), so a mismatch
+must fail in CI rather than at review. A shared checkout happened within minutes
+of the first parallel start: one session wrote its uncommitted work into the
+coordinator's tree. The contract test also caught a real bug immediately, since
+DuckDB `executemany` rejects an empty list, which crashed any capture with no file
+rows. `analytics.py` had the same latent crash and is fixed here.
+
+**Would change if:** the project returns to a single session at a time, or a
+contract needs to cross repositories, in which case version it (SCHEMA.md semver).
+
+---
+
 <!-- Template for new entries:
 
 ## D-00N — <one-line decision>

@@ -112,10 +112,11 @@ def run(con: duckdb.DuckDBPyConnection, client: httpx.Client) -> str:
         return "unchanged"
 
     _log_fetch(con, run_id, ts, "ok", 200, sha, response, len(rows), excluded)
-    con.executemany(
-        "INSERT INTO analytics_file_observation VALUES (?, ?, ?, ?, ?, ?, ?)",
-        [[run_id, ts, SOURCE_URL, r["file_url"], r["bates_id"], r["dataset"], r["total_events"]] for r in rows],
-    )
+    if rows:  # DuckDB executemany rejects an empty parameter list
+        con.executemany(
+            "INSERT INTO analytics_file_observation VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [[run_id, ts, SOURCE_URL, r["file_url"], r["bates_id"], r["dataset"], r["total_events"]] for r in rows],
+        )
     return "ok"
 
 
