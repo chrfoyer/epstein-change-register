@@ -87,7 +87,7 @@ or non-PDF documents through this register.
 **File identity depends on Bates numbers and archive digests** (D-011, D-013)
 
 When a Bates number is present in the listing, it is the primary identity. When missing,
-the register falls back to `archive_digest` (SHA-256 from Wayback). When both are missing,
+the register falls back to `archive_digest` (Wayback's base32 SHA-1, not SHA-256). When both are missing,
 identity is unknown.
 
 - **No "changed" claim without fingerprint:** If identity is unknown (no Bates, no archive
