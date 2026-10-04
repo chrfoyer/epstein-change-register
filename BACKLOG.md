@@ -1,0 +1,144 @@
+# Backlog — Epstein Library Change Register
+
+> **What this is:** an independent completeness and change register for the DOJ
+> Epstein Library. It tracks what was published, what moved, and what
+> disappeared, with verifiable provenance. **It does not host the documents.**
+
+## How this backlog is organised
+
+Work is grouped into **slices**, not layers. Every slice ends with something
+that can be shown to someone and that stands on its own if the next slice never
+happens. A slice is sized for one weekend morning or two or three evenings —
+roughly 4–6 hours.
+
+Status: `[ ]` todo · `[~]` in progress · `[x]` done · `[-]` dropped (say why)
+
+---
+
+## Slice 0 — Start the clock
+
+**Ships:** a crawler that has been running since day one.
+**Why first:** the dataset's value is a function of elapsed observation time. A
+week of delay is a week of history that cannot be recovered later. Ship this
+before anything is pretty.
+
+- [ ] Enumerate DOJ dataset listing page URLs (Court Records / DOJ Disclosures PDFs only)
+- [ ] Scheduled job: walk listings, record `url`, `etag`, `last_modified`, `first_seen`, `last_seen`
+- [ ] Download changed files only; compute and store `sha256`
+- [ ] Conditional requests + polite delay; identifiable User-Agent with contact
+- [ ] Persist to DuckDB; commit or sync after every run
+- [ ] Runs unattended on a schedule without me touching it
+
+**Done when:** the job has completed three consecutive unattended runs.
+
+---
+
+## Slice 1 — First real output
+
+**Ships:** a text report of what changed, generated from real observations.
+
+- [ ] `change_event` table: `added`, `removed`, `reuploaded_identical`, `reuploaded_changed`, `moved_dataset`
+- [ ] Removal rule: absent for 2+ consecutive polls (guards against flaky listings)
+- [ ] Document identity: Bates number where present, else content fingerprint
+- [ ] CLI: `report --since 7d` prints the week's events
+- [ ] Unit tests on the event classifier with fixture data
+
+**Done when:** the report describes a real change you can verify by hand on justice.gov.
+
+---
+
+## Slice 2 — Make it reusable (D1, D2)
+
+**Ships:** a public dataset other people can build on.
+
+- [ ] Publish gold tables as Parquet + CSV on a daily refresh
+- [ ] `SCHEMA.md` with a documented, semver'd column contract
+- [ ] Test fixtures with expected values, asserted in CI
+- [ ] `LIMITATIONS.md` — what this cannot tell you (D3)
+
+**Done when:** a stranger could reproduce your numbers from the docs alone.
+
+---
+
+## Slice 3 — The shareable artifact (C1, C2)
+
+**Ships:** a public page you can put in a job application.
+
+- [ ] Chart: cumulative documents live vs. removed over time
+- [ ] Chart: mean redaction coverage per release date *(placeholder until Slice 6)*
+- [ ] Weekly card feed, reverse-chronological, plain language
+- [ ] Every card links to DOJ URL + archive snapshot
+- [ ] Explicit "we do not host documents" statement, above the fold
+- [ ] Static site build, loads in under 2s
+
+**Done when:** you'd send the link to a stranger without caveats.
+
+---
+
+## Slice 4 — Provenance hardening (J1, J3)
+
+**Ships:** claims that survive being challenged.
+
+- [ ] Wayback CDX lookup per URL; store snapshot timestamps
+- [ ] Save-Page-Now request on first observation of any new URL
+- [ ] `corroboration_count` — independent sources producing the same hash
+- [ ] Removal events cite the last capture proving the file was live
+- [ ] Distinguish *removed* from *re-uploaded under a new filename* in the UI
+
+**Done when:** every removal claim has third-party evidence attached.
+
+---
+
+## Slice 5 — Employer-facing (E1, E2, E3)
+
+**Ships:** the repo reads well to someone giving it 60 seconds.
+
+- [ ] `README.md`: problem → screenshot → architecture diagram, above the fold
+- [ ] `DECISIONS.md` finalised (write entries as you go, not at the end)
+- [ ] CI badge; data quality assertions that fail loudly
+- [ ] Cost per run documented in the README
+- [ ] Retention / `VACUUM` note — why bronze is append-only
+
+**Done when:** someone who has never seen the project can explain it back to you.
+
+---
+
+## Slice 6 — Redaction coverage (J2) — *risky, do last*
+
+**Ships:** the "did this get more redacted" feature.
+**Risk:** scan noise can eat unlimited time. Timebox to two slices; if precision
+is still poor, drop it and write up why in `LIMITATIONS.md`. That write-up is
+itself a good outcome.
+
+- [ ] Rasterise at 150 DPI; dark-pixel ratio per page
+- [ ] Threshold tuning against 20 hand-labelled pages
+- [ ] Change event on coverage delta above threshold
+- [ ] Side-by-side page render, changed regions highlighted
+- [ ] Dual-layer extraction: embedded text vs. OCR of render
+- [ ] Failed-redaction **findings** (page, bbox, char count) → public table
+- [ ] Failed-redaction **content** → restricted schema, separate grants (E4)
+
+**Done when:** precision on the hand-labelled set is good enough to publish, or
+you have documented why it isn't.
+
+---
+
+## Slice 7 — Databricks port — *optional*
+
+**Ships:** the same pipeline on the target architecture.
+Only worth it if you want the platform on your CV or want the cost comparison
+as a blog post. The product does not need it.
+
+- [ ] Volumes + Auto Loader ingest
+- [ ] Bronze / silver / gold as Delta
+- [ ] Unity Catalog grants enforcing the restricted-schema split
+- [ ] Cost comparison vs. the DuckDB version, published
+
+---
+
+## Icebox
+
+- Entity extraction and co-occurrence graph
+- Full-text search over extracted text
+- Coverage of House Oversight releases
+- Alerting / RSS on new change events
