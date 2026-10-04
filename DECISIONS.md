@@ -158,6 +158,29 @@ moves with it in the same commit.
 
 ---
 
+## D-010 — Trunk-based with short-lived branches, `--no-ff` merges, slice tags
+
+**Decided:** `main` is always releasable. Work happens on one short-lived branch
+per backlog item, named `<type>/s<slice>-<slug>`, merged with `--no-ff`.
+Commits use Conventional Commits scoped by slice, with `Refs: D-00N` trailers.
+Completed slices are tagged `slice-N-done`.
+
+**Rejected:** (a) GitFlow (`develop`/`release` branches); (b) committing directly
+to `main`; (c) squash merges.
+
+**Why:** GitFlow solves parallel releases and multiple contributors, neither of
+which exists here. Direct commits lose the grouping that makes history
+answer "what did Slice 1 change?". Squashing discards the per-commit
+boundary-audit granularity; `--no-ff` keeps both the detail and the unit.
+Slice scope, decision trailers and tags tie every change back to `BACKLOG.md`
+and `DECISIONS.md`, which is the traceability goal.
+
+**Would change if:** a second contributor joins (add PR review and required
+status checks) or the register starts cutting versioned dataset releases (add
+release tags per `SCHEMA.md` semver).
+
+---
+
 <!-- Template for new entries:
 
 ## D-00N — <one-line decision>

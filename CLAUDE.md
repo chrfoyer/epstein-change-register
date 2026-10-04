@@ -83,6 +83,23 @@ Restricted content (recovered redaction text, D-004) lives at
 `.claude/settings.json`; see D-009. If the storage layout moves, move the
 deny rule in the same commit.
 
+## Git workflow
+
+See D-010. `main` is always green and never committed to directly.
+
+- **Branch per backlog item**, from `main`: `<type>/s<slice>-<slug>`, e.g.
+  `feat/s0-crawler-listing-walk`, `test/s1-classifier-fixtures`. Types: `feat`,
+  `fix`, `test`, `docs`, `chore`. Cross-cutting work with no slice: `<type>/<slug>`.
+- **Commits** follow Conventional Commits with the slice as scope:
+  `feat(s0): record etag and last_modified per listing row`. Add a
+  `Refs: D-00N` trailer when the commit implements or touches a decision.
+- **Merge** to `main` with `git merge --no-ff`, so each backlog item is one
+  visible unit. Delete the branch afterwards.
+- **Before each merge:** `pytest` passes and `boundary-auditor` has run.
+- **Tag** `slice-N-done` on `main` when a slice's "Done when" is met.
+- Branch lifetime is at most one working block; never leave one open across a gap.
+- Never rewrite history on `main`. Rebase local branches freely before merging.
+
 ## Testing
 
 - Any change to the change-event classifier needs a fixture test.
