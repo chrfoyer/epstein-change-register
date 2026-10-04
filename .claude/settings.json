@@ -8,5 +8,19 @@
       "Read(./data/restricted/**)",
       "Read(**/*.env)"
     ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'Context was just compacted. Before any other action, re-read your docs/handover/session-<name>.md and <name>-status.md, run git status and git worktree list, and restate your branch and task. Shared rules follow.'; cat docs/handover/preamble.md",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
   }
 }

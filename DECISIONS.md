@@ -364,6 +364,15 @@ rows. `analytics.py` had the same latent crash and is fixed here.
 **Would change if:** the project returns to a single session at a time, or a
 contract needs to cross repositories, in which case version it (SCHEMA.md semver).
 
+**Amended 2026-10-04:** compaction is coordinated. Sessions compact only at a clean
+checkpoint after writing `docs/handover/<name>-status.md`, and re-read their
+handover files afterwards (`docs/handover/compaction.md`). A `SessionStart` hook
+with matcher `compact` prints `preamble.md` after every compaction, so the shared
+rules survive a lossy summary. Rejected: relying on each session's summary to keep
+the rules, since the first collision happened before any compaction. Also added
+`tests/test_repo_hygiene.py` (no conflict markers, decision ids unique and
+ascending) after a rebase deleted D-016 and left a marker that CI could not see.
+
 ---
 
 <!-- Template for new entries:

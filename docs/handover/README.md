@@ -31,3 +31,4 @@ reads `preamble.md` plus `session-<name>.md`.
 - Merge order: contract and schema PRs first, then dependents.
 - If you find a collision or a contradiction, stop and report it rather than
   resolving it silently.
+- Compaction follows `compaction.md`: checkpoint, status file, re-read after.
