@@ -295,14 +295,23 @@ reference; neither has been called by us. The OpenRouter route is an `alpha` pat
   is allowlisted metadata, the full request can be stored; the cookbook's concern
   about restricted raw payloads does not apply here.
 
-**Privacy findings (not yet sufficient):**
-- TypeSafe's legal index lists a Privacy Policy that states a commitment not to
-  train on user data, a Data Processing Agreement, and zero data retention on
-  request for enterprise customers. I have read the index, not the documents.
-- OpenRouter does not store prompt or response content unless logging is opted
-  into, keeps request metadata (tokens, latency, model, cost), and can enforce
-  zero-data-retention routing. Whether the `alpha/decisions` endpoint honours that
-  is unknown.
+**Privacy findings:**
+- **TypeSafe:** Legal documentation exists (Privacy Policy, DPA, MCA) in the index
+  at docs.typesafe.ai, but the full policies are behind authentication; confirmed
+  from index that they commit "not to train on user data" and offer "zero data
+  retention on request" for enterprise customers. Jev 1.13 technical docs list
+  nine operational limitations but contain no information on data retention,
+  logging, or training use. Preconditions still require reading the full Privacy
+  Policy and DPA before any call; the index alone is insufficient.
+- **OpenRouter:** Metadata retention (input/output token count, latency, cost,
+  model used) is permanent and automatic; prompt and response content is not
+  stored by default and requires opt-in to "Private Input & Output Logging" or
+  "OpenRouter Use of Inputs/Outputs" (which offers 1% discount). Zero-Data
+  Retention (ZDR) policy is available and can be enforced globally, per model
+  group, per guardrail, or per request; OpenRouter itself complies with ZDR.
+  Provider data policies vary by model provider. No documentation found specifying
+  whether the `alpha/decisions` endpoint honours ZDR settings; precondition to
+  confirm with a harmless test call before deployment.
 
 **Preconditions before any implementation:**
 - read TypeSafe's Privacy Policy and DPA, the OpenRouter data-collection and ZDR
