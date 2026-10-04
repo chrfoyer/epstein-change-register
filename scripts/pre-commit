@@ -1,0 +1,20 @@
+#!/bin/bash
+# Pre-commit hook: run repo hygiene and contract tests on staged changes.
+# Copy to .git/hooks/pre-commit and chmod +x
+# This catches: conflict markers, decision ID gaps, orphaned decision references, schema drift.
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+cd "$REPO_ROOT"
+
+echo "[pre-commit] Running hygiene tests..."
+
+# Run the fast, local checks: conflicts, decisions, references, schemas
+if ! uv run pytest tests/test_repo_hygiene.py tests/test_contract.py -q --tb=short; then
+    echo ""
+    echo "[pre-commit] ✗ Hygiene checks failed. Fix the issues and try again."
+    echo "[pre-commit] For boundary validation, run: uv run pytest and the boundary-auditor before pushing."
+    exit 1
+fi
+
+echo "[pre-commit] ✓ hygiene checks pass"
+exit 0

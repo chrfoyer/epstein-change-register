@@ -1,0 +1,21 @@
+name: post-merge
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+      - run: uv run pytest tests/test_repo_hygiene.py -v
+        name: Verify repo invariants (conflicts, decision IDs, references, schemas)
+      - run: uv run pytest tests/test_contract.py -v
+        name: Verify contract compliance
+      - name: Report success
+        if: success()
+        run: echo "✓ main is valid; all invariants pass"
