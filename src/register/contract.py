@@ -7,7 +7,7 @@ Append-only (D-006). Every table carries `capture_ts` (UTC ISO 8601 with offset)
 and `source_url`.
 """
 
-LISTING_STATUSES = ("ok", "blocked", "error", "empty")
+LISTING_STATUSES = ("ok", "blocked", "error", "empty", "partial")
 
 _STATUS_LIST = ", ".join(f"'{s}'" for s in LISTING_STATUSES)
 

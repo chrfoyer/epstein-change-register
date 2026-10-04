@@ -44,7 +44,7 @@ def test_append_round_trip_and_nullable_digest():
     assert digests == [("A" * 32,), (None,)]
 
 
-@pytest.mark.parametrize("status", ["blocked", "error", "empty"])
+@pytest.mark.parametrize("status", ["blocked", "error", "empty", "partial"])
 def test_non_ok_capture_cannot_carry_file_rows(status):
     con = store.connect(":memory:")
     with pytest.raises(ValueError):
