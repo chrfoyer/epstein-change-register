@@ -212,6 +212,18 @@ an empty listing, or it reads as mass removal (D-007).
 independent of DOJ. It covers only the ~100 most-downloaded files, so absence
 from it means nothing. Observation time is not publication time.
 
+**Consequences:**
+- **Slice 6 is blocked.** D-004's failed-redaction detection compares the PDF
+  text layer with OCR of a rendered page, which needs the PDF bytes. Under this
+  decision there is no lawful byte source. Unblocking needs one of: DOJ
+  allowlisting or an official feed; Wayback captures of the PDFs themselves
+  (unverified, and Wayback never served the bulk ZIPs); or a mirror, which raises
+  its own D-002 and D-003 questions and needs its own decision. Until then Slice 6
+  is not started, and the write-up of why goes in `LIMITATIONS.md`.
+- **Document identity without a Bates number** can only use Wayback's
+  `archive_digest`, and only where a capture exists. Slice 1 must treat a missing
+  fingerprint as "unknown", never as "changed".
+
 **Would change if:** DOJ offers an allowlist, API, or feed; or the age gate and
 bot check are removed.
 
