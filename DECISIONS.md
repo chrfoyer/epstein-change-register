@@ -179,6 +179,12 @@ and `DECISIONS.md`, which is the traceability goal.
 status checks) or the register starts cutting versioned dataset releases (add
 release tags per `SCHEMA.md` semver).
 
+**Amended 2026-10-04:** the repo is on GitHub, so `main` is now protected:
+required `test` status check, no direct pushes, no force-push or deletion, merge
+commits only. Merges happen through pull requests ("Create a merge commit"),
+which keeps the `--no-ff` shape. Required checks make a local merge-and-push
+impossible, which is the point: the gate is enforced, not remembered.
+
 ---
 
 ## D-011 — Observe via third-party sources; never download from justice.gov
@@ -208,6 +214,51 @@ from it means nothing. Observation time is not publication time.
 
 **Would change if:** DOJ offers an allowlist, API, or feed; or the age gate and
 bot check are removed.
+
+---
+
+## D-012 — Jev as an optional, advisory, metadata-only classifier (Proposed)
+
+**Status:** proposed, not implemented. Not before Slice 1.
+
+**Decided:** TypeSafe's Jev (a hosted "System One" model returning typed
+answers with calibrated confidence) may be used at three points, always on
+allowlisted metadata, always advisory:
+1. **Scope gate** for new DOJ site sections or paths (community issues #24 and
+   #28 report DOJ adding sections): classify "court-record PDFs" vs "media".
+   Output is a suggestion for human review; the D-002 allow-pattern stays the
+   hard filter.
+2. **Anomaly triage** on observation metadata, confidence-gated: a low-confidence
+   or high-anomaly answer raises a flag for review and never emits a change event.
+3. **Card text** (Slice 3): plain-language wording generated from change events.
+
+Every call is logged to an append-only `llm_decision` table (`capture_ts`,
+`source_url`, question id, input fields, answer, confidence), because the model
+is not deterministic and results must be reproducible after the fact.
+
+**Rejected:** (a) Jev inside the change-event classifier or the D-007 removal
+rule, which stay deterministic and fixture-tested; (b) sending page text, OCR
+output, or anything from `data/restricted/` (D-003, D-004); (c) a frontier LLM
+for these calls, since they are bounded yes/no or pick-one judgments.
+
+**Why:** the fit is real: these are cheap, bounded judgments. Vendor-claimed
+pricing is $0.042 per million input tokens with 70–500 ms latency, unverified by
+us. But an external API is a publication channel, and TypeSafe's launch post says
+nothing about retention or training use.
+
+**Preconditions before any implementation:**
+- written data retention and training terms from TypeSafe;
+- access: the model is early-access signup only, so the code must work with it
+  disabled, and disabled is the default;
+- API key as a GitHub Actions secret, never committed;
+- an input allowlist enforced in code and covered by a test that fails on any
+  non-allowlisted field.
+
+**Would change if:** terms are unacceptable, access is unavailable, or the
+metadata turns out too thin to classify, in which case drop it and say so.
+
+**Sources:** github.com/disler/ten-levels-of-jev (MIT; confidence gating and
+cheap-routing patterns), typesafe.ai/blog/introducing-system-one-models-and-jev.
 
 ---
 
