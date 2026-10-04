@@ -23,18 +23,18 @@ requests for additional metadata on releases and court records.
 
 ## What We Can Supply
 
-1. **Parquet and CSV change feeds** (machine-readable): Once Slice 1 completes, the register will
-   publish change events weekly: `added`, `removed`, `reuploaded_identical`, `reuploaded_changed`,
+1. **Parquet and CSV change feeds** (planned for Slice 2): Once Slice 1 completes, the register
+   will publish change events as `added`, `removed`, `reuploaded_identical`, `reuploaded_changed`,
    `moved_dataset`. Each event carries observation timestamp, source, document identity (Bates
    number or archive digest), and file URLs. This supports their dashboard and diff tracking.
 
-2. **Archived DOJ observation snapshots** on a published schedule: capture timestamp, source URL,
-   listing response status, file counts, and (when available via Wayback) archive digests and
-   snapshots. Supports their preservation and verification work.
+2. **Archived DOJ observation snapshots** (when available): capture timestamp, source URL,
+   listing response status, file counts, and (when available via Wayback) archive digests.
+   Supports their preservation and verification work.
 
-3. **Claimed-hash metadata** (Source C, future): when the community contributes hash lists,
-   the register stores them alongside measured hashes from archive sources, labeled with source
-   and capture date. Supports the verifier's goal of comparing versions over time.
+3. **Claimed-hash metadata** (yung-megafone/Epstein-Files, future): when the community
+   contributes hash lists, the register stores them with source and capture date labels.
+   The verifier's goal of comparing versions over time requires independent verification.
 
 4. **API documentation** (Slice 5 and beyond): documented column contract, semver'd schema,
    and a working example of querying the Parquet tables. Lowers their barrier to integration.
@@ -55,10 +55,25 @@ requests for additional metadata on releases and court records.
 4. **Scope outside court-record and disclosure PDFs** (D-002): The media datasets (images,
    video) are excluded; the register covers text-native PDFs only.
 
+## Drafted Comment for Issue #27
+
+To be posted once Slice 1 completes (do not post now):
+
+> We're building a complementary change register for the DOJ Epstein Library
+> (github.com/chrfoyer/epstein-change-register). Once our Slice 1 classifier is complete,
+> we'll be publishing weekly Parquet + CSV feeds of change events (`added`, `removed`,
+> `reuploaded_identical`, `reuploaded_changed`, `moved_dataset`) with full observation
+> metadata — source, timestamps, document identity (Bates number or archive digest), and
+> file URLs.
+>
+> If useful for your diff tracker, we can make those feeds available on a stable URL as a
+> machine-readable alternative to your dashboard's HTML scraping. We'll also link your
+> visual tracker in our register as a complementary resource. Your work tracking upstream
+> inconsistencies (#24, #28, #30) is exactly the signal we need.
+
 ## Next Steps
 
-- Once Slice 1 completes, post a pointer to the change-event feed on issue #27, offering
-  the Parquet + CSV as a machine-readable alternative to their dashboard's HTML scraping.
-- Link this register to their README as a complementary data source for change tracking.
-- Stay responsive to upstream inconsistencies they report (#24, #28, #30) and incorporate
-  observations into the register's model.
+- Once Slice 1 completes, post the drafted comment on issue #27 offering the Parquet + CSV feeds.
+- Link this register to the yung-megafone/Epstein-Files README as a complementary data source.
+- Stay responsive to upstream inconsistencies they report and incorporate observations into
+  the register's model.

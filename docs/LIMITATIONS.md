@@ -12,11 +12,11 @@ The register observes that files exist, where they move, and what metadata is av
 It cannot download file bytes, compute SHA-256 hashes of the PDFs themselves, or detect
 redaction changes over time.
 
-**Consequence:** The register offers `archive_digest` (SHA-256 from Wayback captures when
-available) as a fallback identity for files without a Bates number, but the digest may be
-stale or missing. Document identity is unverified; true content fingerprints remain unknown.
-Slice 6 (redaction-coverage tracking) is explicitly blocked pending a lawful byte source
-(DOJ feed, official allowlist, or verified Wayback captures).
+**Consequence:** The register offers `archive_digest` (base32 SHA-1, a CDX digest from Wayback
+captures when available) as a fallback identity for files without a Bates number, but the
+digest may be stale or missing. Document identity is unverified; true content fingerprints
+remain unknown. Slice 6 (redaction-coverage tracking) is explicitly blocked pending a lawful
+byte source (DOJ feed, official allowlist, or verified Wayback captures).
 
 ## Observation vs. Publication Time
 
@@ -46,29 +46,28 @@ it is a liveness signal for a subset, not a complete inventory.
   simply be less popular. Removal claims require Source B (Wayback comparisons) plus
   third-party evidence (D-007).
 
-### Source B: Wayback listing captures and CDX digests (Slice 1, blocked)
+### Source B: Wayback listing captures and CDX digests (Slice 0, pending)
 
 Internet Archive provides snapshots of listing pages and a CDX index of URLs they have
 captured. This source enables before/after comparisons on complete listings.
 
-- **Status:** Archive.org was offline on October 4, 2026. Integration is pending availability
-  and CDX API stability. See Slice 0 backlog item "Source B."
-- **Dependency:** CDX lookups are slow and Archive.org's IP blocks are common. The register
-  is designed to cache aggressively and never hammer the archive.
+- **Status:** Archive.org is reachable (CDX index confirmed available for DOJ disclosures;
+  earliest capture 2025-12-19). Integration is in progress as a Slice 0 task.
+- **Dependency:** CDX lookups require reliable archive.org availability. The register is
+  designed to handle transient failures gracefully.
 - **Caveat:** Archive coverage is not uniform. Some URLs are captured; others are not. A
   missing Wayback capture does not mean a file is new.
 
-### Source C: Community hash lists (Slice 0, not yet integrated)
+### Source C: Community hash lists (yung-megafone/Epstein-Files, not yet integrated)
 
-Community members may contribute hash lists and metadata from their own archives or from
-historical records (Reddit, forum posts, prior torrents).
+The yung-megafone/Epstein-Files project maintains hash lists and version metadata from
+their preservation work.
 
 - **As-claimed:** Hashes are stored with their source and capture date, but not independently
   verified by the register. "Claimed hash" ≠ measured truth.
-- **No re-distribution:** The register does not host or reseed torrents or archives. It
-  records metadata only.
-- **Provenance:** Each hash carries a source label so you can trace it. Verification is your
-  responsibility.
+- **No re-distribution:** The register does not host or reseed archives. It records metadata
+  only, with attribution to the original source.
+- **Provenance:** Each hash carries its source so you can verify it independently.
 
 ## Document Scope
 
@@ -93,11 +92,11 @@ identity is unknown.
 
 - **No "changed" claim without fingerprint:** If identity is unknown (no Bates, no archive
   digest), the register will not claim a file was "reuploaded" or "changed," even if the
-  same URL now resolves to different content. A flag will be raised instead (D-007).
-- **Claimed vs. measured hashes:** Community submissions may include SHA-256 hashes; these
-  are stored as `claimed_hash` with source and date. The register cannot compare claimed
-  hashes to measured hashes without PDF bytes (blocked by D-011). Mismatches are noted but
-  not resolved.
+  same URL now resolves to different content. The uncertainty is recorded in the event log.
+- **Claimed vs. measured hashes:** Community submissions may include hashes; these are
+  stored with source and date attribution. The register cannot compute measured hashes from
+  PDF bytes (blocked by D-011). Any mismatches between claimed and measured hashes must be
+  verified independently.
 
 **Recovered redaction findings are not published** (D-004)
 
@@ -156,13 +155,13 @@ momentarily unavailable. You must interpret the raw `status` field.
 
 ## What Gets Published and What Doesn't
 
-### Public tables (published weekly as Parquet + CSV)
+### Planned public tables (Slice 2: Parquet + CSV format)
 
 - `change_event`: the typed change log (added, removed, reuploaded, moved).
 - `listing_capture`: observation metadata (timestamp, source, status, file count).
-- `listing_capture_file`: each file observed (URL, Bates number, archive digest).
-- `llm_decision` (when Jev is enabled): scope gates and anomaly triage (metadata only;
-  no prompt or response content).
+- `listing_capture_file`: each file observed (URL, Bates number, archive digest as base32 SHA-1).
+- `llm_decision` (when Jev is enabled, planned for Slice 3): scope gates and anomaly triage
+  (metadata only; no prompt or response content).
 
 ### Not published
 

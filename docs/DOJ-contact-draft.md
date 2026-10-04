@@ -64,7 +64,12 @@ https://github.com/chrfoyer/epstein-change-register/issues
   personal interest.
 - **No technical jargon.** "Machine-readable" is clear; avoid acronyms beyond EFTA and
   Bates number.
+- **Channel note.** A FOIA request (the contact details above) may not be the right path
+  for an access allowlist request. Consider reaching out to DOJ's web team or public affairs
+  first if they have a technical contact or a web infrastructure channel. FOIA works best
+  for document requests, not API/feed requests.
 - **Expect a slow response or none.** Government offices move slowly. Send this once and
   do not follow up unless they respond.
 - **If you get a response, document it.** Add a note to DECISIONS.md or LIMITATIONS.md
-  if DOJ clarifies their policy or plans.
+  if DOJ clarifies their policy or plans. Contact details verified against
+  https://www.justice.gov/oip/find-foia-contact-doj/list.
