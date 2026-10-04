@@ -488,6 +488,47 @@ ascending) after a rebase deleted D-016 and left a marker that CI could not see.
 
 ---
 
+## D-018 — Code and metadata licensing (Proposed)
+
+**Status:** Proposed. The maintainer chooses, and a follow-up PR adds LICENSE files.
+
+**Decision:** Separate licences for code and published metadata. Both are public, with different terms for reuse and attribution.
+
+**Options and implications:**
+
+**Code:**
+- *Option A: MIT* — Permissive, simple, public-domain compatible. "Do what you want with this code; we take no liability." No explicit patent grant. Preferred for short utility code, data pipelines, small tools. Most compatible with downstream licenses (permissive code + GPL can compose).
+- *Option B: Apache-2.0* — Permissive, with explicit patent grant and trademark clause. "You can use and modify this; if you sue us over patents related to this code, your licence terminates." More defensive; better for code that may be patent-relevant (rare here). Longer text; requires boilerplate in each file.
+
+Recommendation: **MIT**. The code is a data pipeline, not a novel patent-worthy algorithm. Simpler boilerplate, faster adoption, no defensiveness needed.
+
+**Published metadata** (change_event, listing_capture, listing_capture_file tables, exported as Parquet and CSV):
+- *Option A: CC0 (public domain)* — "This data is public domain; do anything with it, no attribution required." Maximum reuse, minimum friction downstream (e.g., machine learning, reindexing, resale). Aligned with the goal of making the data freely available. Loses the ability to track downstream use or require attribution to the register.
+- *Option B: CC-BY-4.0 (attribution required)* — "You can use and modify this data; you must attribute the original source." Allows commercial reuse, derivatives, and republication. Requires downstream projects to cite the register in their docs or outputs. Aligns with the project's emphasis on provenance and verifiable sourcing (D-011 principle). Creates a chain of attribution: "Source: DOJ Library, observed by epstein-change-register on [date]."
+
+Recommendation: **CC-BY-4.0**. The project's entire value proposition is provenance and verifiable attribution. CC-BY-4.0 ensures downstream use retains the chain of evidence and credits the observation source. It is not restrictive (full commercial reuse is allowed), but it prevents the register's observations from being republished as though they were the original source. Aligns with D-001, D-007, and D-013's emphasis on defensible claims.
+
+**Legal caveat:** This is not legal advice. Before finalizing, review:
+- MIT Licence text (opensource.org/licenses/MIT) — 11 lines, public domain status.
+- Apache License 2.0 text (apache.org/licenses/LICENSE-2.0) — patent termination clause and scope of grants.
+- CC0 Deed (creativecommons.org/publicdomain/zero/1.0/) — public domain dedication, no attribution required.
+- CC-BY-4.0 Deed (creativecommons.org/licenses/by/4.0/) — attribution requirement, scope, derivative works.
+
+Consult legal counsel if:
+- The register becomes a critical data source for a major publication or lawsuit.
+- Patent risk in code or data becomes material (unlikely for a change register).
+- Data-sharing agreements with external partners require specific terms.
+
+**Implementation:**
+- Add `LICENSE` file to repo root with MIT text (code).
+- Add `LICENSE.data` or note in published Parquet metadata that exports carry CC-BY-4.0.
+- Add licence statement to README.md and LIMITATIONS.md.
+- No code-header boilerplate for MIT (convention for small projects).
+
+**Would change if:** the maintainer has existing IP agreements, expects patent litigation, or wants to allow rebranding of the data without attribution (go CC0).
+
+---
+
 <!-- Template for new entries:
 
 ## D-00N — <one-line decision>
