@@ -181,6 +181,36 @@ release tags per `SCHEMA.md` semver).
 
 ---
 
+## D-011 — Observe via third-party sources; never download from justice.gov
+
+**Decided:** Slice 0 records observations from sources that are not
+justice.gov itself: (A) the analytics.usa.gov DOJ top-downloads CSV, (B) Wayback
+listing captures and CDX digests when archive.org is reachable, (C) community
+hash lists as claimed hashes with their source. Only court-record PDFs under a
+numbered `DataSet N/` path are recorded; media and prior-disclosure folders are
+excluded by an allow-pattern, not a blocklist (D-002). `sha256` of documents is
+null until a legitimate byte source exists; `archive_digest` is the interim
+fingerprint.
+
+**Rejected:** (a) headless browser or scripted age-gate/bot-check passing;
+(b) polling justice.gov directly, as D-001 assumed; (c) in-memory download and
+hash of PDFs.
+
+**Why:** recon found the listing behind an Akamai JS challenge that answers
+HTTP 200, and PDF URLs 302 to `/age-verify`. Passing either means defeating
+access controls DOJ put in place for sensitive material, which conflicts with
+boundary 5 and D-002. A bot-wall page must be recorded as `unexpected`, never as
+an empty listing, or it reads as mass removal (D-007).
+
+**Limits:** analytics data is DOJ's own, so it is liveness evidence but not
+independent of DOJ. It covers only the ~100 most-downloaded files, so absence
+from it means nothing. Observation time is not publication time.
+
+**Would change if:** DOJ offers an allowlist, API, or feed; or the age gate and
+bot check are removed.
+
+---
+
 <!-- Template for new entries:
 
 ## D-00N — <one-line decision>
